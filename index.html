@@ -1,0 +1,1219 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#07090D">
+<meta name="description" content="PIZNO: демо мобільного застосунку прокату авто. Каталог за класами, календар вільних дат, токени лояльності, подарункові сертифікати й панель власника.">
+<meta property="og:title" content="PIZNO Прокат авто">
+<meta property="og:description" content="Інтерактивне демо застосунку для прокату авто">
+<link rel="icon" href="assets/duck-black.png" type="image/png">
+<link rel="apple-touch-icon" href="assets/duck-black.png">
+<style>html{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}[hidden]{display:none!important}img{max-width:100%}</style>
+<title>PIZNO Прокат авто</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;700&family=Onest:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: phone-frame app on a dark striped stage; one screen visible at a time, tab bar + sticky CTA bars.
+   Single deliberate dark look: graphite neutrals biased to blue, one electric-blue accent used only for focus, selection and the floor light under cars. */
+:root{
+  --bg:#07090D; --bg-2:#0B0E14; --surface:#10141C; --surface-2:#161B25; --line:#212937; --line-2:#2D3647;
+  --text:#ECEFF5; --muted:#949DAF; --dim:#646D80;
+  --blue:#2E5BFF; --blue-hi:#7D98FF; --blue-deep:#101D4F; --glow:rgba(46,91,255,.42); --on-blue:#FFFFFF;
+  --ok:#45D49B; --warn:#F2B544; --bad:#FF6372;
+  --f-display:"Unbounded","Arial Black",system-ui,sans-serif;
+  --f-body:"Onest",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  --r-s:8px; --r-m:14px; --r-l:22px;
+  --ease:cubic-bezier(.2,.8,.2,1);
+  color-scheme:dark;
+}
+html{box-sizing:border-box;height:100%;background:var(--bg)}
+*,*::before,*::after{box-sizing:inherit}
+body{height:100%;margin:0;background:var(--bg);color:var(--text);font:400 15px/1.5 var(--f-body);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer}
+input,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--blue-hi);outline-offset:2px;border-radius:6px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.num{font-variant-numeric:tabular-nums}
+.mono{font-family:var(--f-mono)}
+.label{font:600 11px/1.2 var(--f-mono);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.ico{width:20px;height:20px;flex:none;fill:none;stroke:currentColor;stroke-width:1.75;stroke-linecap:round;stroke-linejoin:round}
+
+/* ---------- stage ---------- */
+.stage{min-height:100%;display:flex;align-items:center;justify-content:center;gap:64px;padding-block:24px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
+  background:repeating-linear-gradient(90deg,transparent 0 119px,rgba(125,152,255,.045) 119px 120px),radial-gradient(900px 500px at 70% 40%,rgba(46,91,255,.10),transparent 70%),var(--bg)}
+.pitch{max-width:340px;display:none;flex-direction:column;gap:22px}
+.pitch h1{font:700 30px/1.15 var(--f-display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+.pitch p{margin:0;color:var(--muted)}
+.pitch ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px}
+.pitch li button{width:100%;display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px solid var(--line);border-radius:var(--r-m);text-align:left;transition:border-color .2s,background .2s}
+.pitch li button:hover{border-color:var(--line-2);background:var(--surface)}
+.pitch li button[aria-current="true"]{border-color:var(--blue);background:var(--surface)}
+.pitch li .label{width:22px;color:var(--dim)}
+.pitch small{color:var(--dim);font-size:12px}
+@media (min-width:1000px){.pitch{display:flex}}
+
+.device{position:relative;flex:none;width:390px;height:min(844px,calc(100vh - 48px));min-height:640px;border-radius:48px;overflow:hidden;background:var(--bg);
+  box-shadow:0 0 0 1px var(--line-2),0 0 0 10px #040508,0 0 0 11px var(--line),0 50px 120px rgba(0,0,0,.7)}
+.statusbar{position:absolute;top:0;left:0;right:0;height:48px;z-index:30;display:flex;align-items:center;justify-content:space-between;padding:6px 30px 0 36px;font:600 15px var(--f-body);pointer-events:none}
+.statusbar::after{content:"";position:absolute;left:50%;top:11px;width:118px;height:33px;border-radius:20px;background:#000;transform:translateX(-50%)}
+.statusbar .sb-r{display:flex;gap:6px;align-items:center}
+@media (max-width:519px){
+  .stage{display:block;padding:0;min-height:0;height:100%;background:var(--bg)}
+  .device{width:100%;height:100%;min-height:0;border-radius:0;box-shadow:none;--dev-r:0px}
+  .statusbar{display:none}
+}
+@media (min-width:520px){ .screen{padding-top:52px} }
+
+/* ---------- screens ---------- */
+.screens{position:absolute;inset:0;overflow:hidden;clip-path:inset(0 round var(--dev-r,48px))}
+.screen{position:absolute;inset:0;overflow-y:auto;overflow-x:hidden;padding-bottom:120px;scrollbar-width:none;opacity:0;visibility:hidden;transform:translateX(18px);transition:opacity .28s var(--ease),transform .32s var(--ease),visibility 0s .32s;background:var(--bg)}
+.screen::-webkit-scrollbar{display:none}
+.screen.on{opacity:1;visibility:visible;transform:none;transition:opacity .28s var(--ease),transform .32s var(--ease)}
+.screen.push{padding-bottom:0}
+.pad{padding-inline:20px}
+.stack{display:flex;flex-direction:column}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 20px 8px}
+.iconbtn{width:44px;height:44px;display:grid;place-items:center;border-radius:50%;border:1px solid var(--line);background:var(--surface);transition:transform .15s,border-color .2s}
+.iconbtn:active{transform:scale(.94)}
+.iconbtn[aria-pressed="true"]{color:var(--bad);border-color:rgba(255,99,114,.4)}
+.iconbtn[aria-pressed="true"] .ico{fill:currentColor}
+.h-screen{font:700 22px/1.2 var(--f-display);margin:0;letter-spacing:-.01em}
+.section-h{display:flex;align-items:baseline;justify-content:space-between;gap:12px;margin:28px 0 12px}
+.section-h h2{font:700 16px/1.2 var(--f-display);margin:0}
+.link{color:var(--blue-hi);font-weight:600;font-size:14px;padding:6px 0}
+
+/* brand */
+.brand{display:flex;align-items:center;gap:10px}
+.brand-mark{width:40px;height:40px;flex:none;border-radius:12px;background:linear-gradient(160deg,#18213d,#0b0e16);border:1px solid var(--line-2);display:grid;place-items:end center;overflow:hidden}
+.brand-mark img{width:88%;height:auto;margin-bottom:-6%}
+.wordmark{display:block;width:auto;filter:drop-shadow(0 0 1px rgba(0,0,0,.6))}
+.car-img{display:block;max-width:100%;height:auto;user-select:none;-webkit-user-drag:none}
+.brand-name{font:700 17px var(--f-display);letter-spacing:.06em}
+.pill{display:inline-flex;align-items:center;gap:6px;height:36px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:13px}
+.pill .ico{width:16px;height:16px}
+.token-pill{color:var(--blue-hi)}
+
+.greet{padding:6px 20px 0}
+.greet p{margin:0;color:var(--muted)}
+.greet h1{font:700 26px/1.15 var(--f-display);margin:4px 0 0;letter-spacing:-.015em;text-wrap:balance}
+
+/* banners (ref: sneaker app hero card) */
+.banners{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;padding:18px 20px 0;scrollbar-width:none}
+.banners::-webkit-scrollbar{display:none}
+.banner{position:relative;flex:0 0 100%;min-height:232px;border-radius:var(--r-l);padding:20px;scroll-snap-align:center;overflow:hidden;border:1px solid var(--line-2);isolation:isolate;
+  background:radial-gradient(70% 60% at 85% 85%,rgba(46,91,255,.45),transparent 70%),linear-gradient(160deg,#0f1838 0%,#0a0e1c 55%,#07090d 100%)}
+.banner::before{content:"";position:absolute;left:0;right:0;bottom:0;height:46%;z-index:-1;opacity:.55;
+  background:repeating-linear-gradient(90deg,rgba(125,152,255,.16) 0 1px,transparent 1px 34px),linear-gradient(180deg,transparent,rgba(46,91,255,.12));
+  -webkit-mask:linear-gradient(180deg,transparent,#000 70%);mask:linear-gradient(180deg,transparent,#000 70%);transform:perspective(220px) rotateX(48deg);transform-origin:bottom}
+.banner.b2{background:radial-gradient(70% 60% at 85% 85%,rgba(125,152,255,.30),transparent 70%),linear-gradient(160deg,#171b26,#0b0d13 60%)}
+.banner.b3{background:radial-gradient(70% 60% at 85% 85%,rgba(46,91,255,.38),transparent 70%),linear-gradient(160deg,#10131c,#07080c 60%)}
+.banner .eyebrow{color:var(--blue-hi)}
+.banner .idx{position:absolute;top:18px;right:18px;font:600 11px var(--f-mono);color:var(--dim);letter-spacing:.1em}
+.banner h3{font:700 25px/1.08 var(--f-display);margin:10px 0 8px;white-space:pre-line;letter-spacing:-.015em;text-wrap:balance;max-width:72%}
+.banner p{margin:0 0 16px;color:#C2C9D8;font-size:13px;max-width:46%;line-height:1.4}
+.banner .tag{display:inline-flex;align-items:center;gap:6px;margin-left:8px;font:600 12px var(--f-mono);color:#C2C9D8}
+.banner .car-art{position:absolute;right:-34px;bottom:10px;width:236px;z-index:-1;pointer-events:none}
+.banner .car-art img{display:block;width:100%;height:auto;filter:drop-shadow(0 16px 12px rgba(0,0,0,.75))}
+.banner .car-art::after{content:"";position:absolute;left:12%;right:6%;bottom:-2px;height:2px;border-radius:2px;background:linear-gradient(90deg,transparent,rgba(125,152,255,.9),transparent);filter:blur(1px)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:44px;padding:0 18px;border-radius:999px;font-weight:600;font-size:14px;transition:transform .15s,background .2s,box-shadow .2s}
+.btn:active{transform:scale(.97)}
+.btn-white{background:#fff;color:#0A0D14}
+.btn-blue{background:var(--blue);color:var(--on-blue);box-shadow:0 8px 28px -8px var(--glow)}
+.btn-blue:hover{background:#3A66FF}
+.btn-ghost{border:1px solid var(--line-2);background:var(--surface)}
+.btn[disabled]{opacity:.4;pointer-events:none}
+.dots{display:flex;justify-content:center;gap:6px;margin-top:12px}
+.dots button{width:24px;height:24px;display:grid;place-items:center}
+.dots button::before{content:"";width:6px;height:6px;border-radius:3px;background:var(--line-2);transition:width .25s,background .25s}
+.dots button[aria-current="true"]::before{width:18px;background:var(--blue-hi)}
+
+/* class chips (ref: category row) */
+.chips{display:flex;gap:8px;overflow-x:auto;padding:0 20px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:2px;min-width:86px;padding:10px 14px;border-radius:var(--r-m);border:1px solid var(--line);background:var(--surface);text-align:left;transition:border-color .2s,background .2s}
+.chip b{font-weight:600;font-size:14px}
+.chip span{font:500 11px var(--f-mono);color:var(--muted)}
+.chip[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:var(--on-blue)}
+.chip[aria-pressed="true"] span{color:rgba(255,255,255,.75)}
+
+/* carousel (ref: food picker) */
+.carousel-wrap{position:relative;margin-top:6px;container-type:inline-size}
+.carousel-wrap::before{content:"";position:absolute;left:50%;top:44%;width:300px;height:230px;transform:translate(-50%,-50%);background:radial-gradient(closest-side,rgba(46,91,255,.30),transparent 75%);pointer-events:none}
+.carousel{position:relative;display:flex;overflow-x:auto;scroll-snap-type:x mandatory;padding:30px 19cqw 4px;scrollbar-width:none;overscroll-behavior-x:contain}
+.carousel::-webkit-scrollbar{display:none}
+.c-item{flex:0 0 62cqw;scroll-snap-align:center;--d:0;transform:scale(calc(1 - var(--d) * .48)) translateY(calc(var(--d) * 22px));opacity:calc(1 - var(--d) * .55);transition:transform .12s linear;padding:0 2px}
+.c-item img{display:block;width:100%;aspect-ratio:16/10;object-fit:contain;filter:drop-shadow(0 18px 14px rgba(0,0,0,.7))}
+.c-arrows{position:absolute;inset:auto 8px 8px;display:flex;justify-content:space-between;pointer-events:none}
+.c-arrows .iconbtn{pointer-events:auto;width:40px;height:40px;background:rgba(16,20,28,.8)}
+.focus{text-align:center;padding:4px 20px 0;min-height:118px}
+.focus .cls-tag{display:inline-flex;align-items:center;gap:6px}
+.focus .cls-tag::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--blue-hi)}
+.focus h3{font:700 21px/1.2 var(--f-display);margin:8px 0 4px;letter-spacing:-.01em}
+.focus .price{font:700 20px var(--f-display);margin-top:6px}
+.focus .price small{font:500 13px var(--f-body);color:var(--muted)}
+.focus .hint{display:block;margin-top:10px;color:var(--dim);font-size:13px}
+.fade-in{animation:fade .35s var(--ease)}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* teaser cards */
+.teasers{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:0 20px}
+.tcard{position:relative;display:flex;flex-direction:column;justify-content:space-between;gap:14px;min-height:150px;padding:16px;border-radius:var(--r-l);border:1px solid var(--line);background:var(--surface);text-align:left;overflow:hidden}
+.tcard .big{font:700 26px/1 var(--f-display)}
+.tcard p{margin:0;color:var(--muted);font-size:13px;line-height:1.35}
+.tcard .ico{color:var(--blue-hi);width:22px;height:22px}
+.progress{height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden}
+.progress i{display:block;height:100%;border-radius:3px;background:linear-gradient(90deg,var(--blue),var(--blue-hi))}
+
+/* catalog grid (ref: top picks) */
+.search{display:flex;align-items:center;gap:10px;height:50px;margin:8px 20px 16px;padding:0 16px;border-radius:var(--r-m);border:1px solid var(--line);background:var(--surface)}
+.search input{flex:1;min-width:0;height:100%;background:none;border:0;outline:none}
+.search input::placeholder{color:var(--dim)}
+.search:focus-within{border-color:var(--blue)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px 20px 0}
+.card{position:relative;display:flex;flex-direction:column;border-radius:var(--r-l);border:1px solid var(--line);background:linear-gradient(180deg,var(--surface-2),var(--surface));overflow:hidden;text-align:left;transition:border-color .2s,transform .2s}
+.card:hover{border-color:var(--line-2)}
+.card:active{transform:scale(.985)}
+.card .art{padding:36px 10px 0}
+.card .art img{display:block;width:100%;aspect-ratio:16/10;object-fit:contain;filter:drop-shadow(0 10px 8px rgba(0,0,0,.65))}
+.card .body{padding:6px 14px 14px;display:flex;flex-direction:column;gap:2px}
+.card h3{margin:0;font-weight:600;font-size:15px;line-height:1.25}
+.card .sub{color:var(--muted);font-size:12px}
+.card .row{display:flex;align-items:center;justify-content:space-between;margin-top:8px}
+.card .p{font:700 15px var(--f-display)}
+.card .p small{font:500 11px var(--f-body);color:var(--muted)}
+.card .go{width:34px;height:34px;border-radius:50%;background:var(--blue);display:grid;place-items:center;color:#fff}
+.card .go .ico{width:16px;height:16px}
+.card .badge{position:absolute;top:10px;left:10px}
+.badge{display:inline-flex;align-items:center;gap:4px;height:22px;padding:0 8px;border-radius:6px;font:600 10px var(--f-mono);letter-spacing:.06em;text-transform:uppercase;background:var(--surface-2);border:1px solid var(--line-2);color:var(--muted)}
+.badge .ico{width:12px;height:12px}
+.badge.ev{color:var(--ok);border-color:rgba(69,212,155,.35)}
+.badge.last{color:var(--warn);border-color:rgba(242,181,68,.35)}
+.empty{padding:40px 20px;text-align:center;color:var(--muted)}
+
+/* detail (ref: product page) */
+.hero{position:relative;height:300px;overflow:hidden}
+.hero .ghost{position:absolute;left:0;right:0;top:64px;text-align:center;font:700 74px/1 var(--f-display);color:transparent;-webkit-text-stroke:1px var(--line-2);letter-spacing:.02em;user-select:none;white-space:nowrap}
+.hero .floor{position:absolute;left:8%;right:8%;bottom:30px;height:70px;background:radial-gradient(closest-side,rgba(46,91,255,.55),rgba(46,91,255,.12) 55%,transparent);filter:blur(6px)}
+.hero .floor::after{content:"";position:absolute;left:18%;right:18%;top:50%;height:1px;background:linear-gradient(90deg,transparent,rgba(125,152,255,.8),transparent)}
+.hero .car{position:absolute;left:16px;right:16px;bottom:26px}
+.hero .car img{display:block;width:100%;height:220px;object-fit:contain;filter:drop-shadow(0 24px 18px rgba(0,0,0,.75))}
+.drive-in{animation:drive .9s var(--ease) both}
+.drive-in .spokes{animation:spin .9s var(--ease) both}
+@keyframes drive{from{transform:translateX(-60%);opacity:0}to{transform:none;opacity:1}}
+@keyframes spin{from{transform:rotate(-540deg)}to{transform:none}}
+.spokes{transform-box:fill-box;transform-origin:center}
+.hero .topbar{position:absolute;left:0;right:0;top:0;z-index:2}
+.sheet-panel{position:relative;margin-top:-6px;border-radius:28px 28px 0 0;background:var(--bg-2);border-top:1px solid var(--line);padding:22px 20px 0}
+.title-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.title-row h1{font:700 23px/1.15 var(--f-display);margin:6px 0 4px;letter-spacing:-.01em;text-wrap:balance}
+.rating{display:flex;align-items:center;gap:6px;color:var(--muted);font-size:13px}
+.rating .stars{display:flex;gap:1px;color:var(--warn)}
+.rating .stars .ico{width:14px;height:14px;fill:currentColor;stroke:none}
+.price-box{flex:none;text-align:right;padding:10px 12px;border-radius:var(--r-m);border:1px solid var(--line-2);background:var(--surface)}
+.price-box b{display:block;font:700 18px var(--f-display);white-space:nowrap}
+.tariffs{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+.tariff{padding:10px 6px;border-radius:var(--r-s);border:1px solid var(--line);background:var(--surface);text-align:center}
+.tariff .label{font-size:10px}
+.tariff b{display:block;margin-top:4px;font:700 14px var(--f-display)}
+.tariff em{display:block;font:500 11px var(--f-mono);font-style:normal;color:var(--ok);margin-top:2px}
+.specs{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.spec{display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:var(--r-m);border:1px solid var(--line);background:var(--surface);min-width:0}
+.spec .ico{color:var(--blue-hi);width:18px;height:18px}
+.spec b{font-weight:600;font-size:14px;line-height:1.2}
+.spec span{font-size:11px;color:var(--muted)}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;align-items:center;gap:12px;min-height:60px;padding:10px 14px;border-radius:var(--r-m);border:1px solid var(--line);background:var(--surface);text-align:left;transition:border-color .2s,background .2s}
+.opt .ico{color:var(--muted)}
+.opt .t{flex:1;min-width:0}
+.opt .t b{display:block;font-weight:600;font-size:14px}
+.opt .t span{font-size:12px;color:var(--muted)}
+.opt .sw{width:42px;height:24px;border-radius:12px;background:var(--line-2);position:relative;flex:none;transition:background .2s}
+.opt .sw::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .2s var(--ease)}
+.opt[aria-pressed="true"]{border-color:rgba(46,91,255,.6);background:linear-gradient(90deg,rgba(46,91,255,.10),var(--surface))}
+.opt[aria-pressed="true"] .ico{color:var(--blue-hi)}
+.opt[aria-pressed="true"] .sw{background:var(--blue)}
+.opt[aria-pressed="true"] .sw::after{transform:translateX(18px)}
+.cta-bar{position:sticky;bottom:0;z-index:5;display:flex;gap:10px;align-items:center;padding:14px 20px calc(16px + env(safe-area-inset-bottom,0px));margin-top:24px;background:linear-gradient(180deg,rgba(11,14,20,0),var(--bg-2) 28%)}
+.cta-bar .btn-blue{flex:1;height:56px;font-size:16px}
+.cta-bar .iconbtn{width:56px;height:56px}
+
+/* booking (ref: wellness app) */
+.strip{display:flex;gap:8px;overflow-x:auto;padding:4px 20px 6px;scrollbar-width:none}
+.strip::-webkit-scrollbar{display:none}
+.dayc{flex:none;width:54px;display:flex;flex-direction:column;align-items:center;gap:6px;padding:6px 0;color:var(--muted)}
+.dayc .c{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;border:1px solid var(--line-2);font:700 15px var(--f-display);color:var(--text);transition:all .25s var(--ease)}
+.dayc small{font:600 11px var(--f-mono);text-transform:uppercase}
+.dayc[aria-pressed="true"] .c{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 0 0 5px rgba(46,91,255,.16),0 0 26px var(--glow);transform:scale(1.08)}
+.dayc[aria-pressed="true"]{color:var(--text)}
+.dayc[disabled]{opacity:.35;cursor:not-allowed}
+.dayc[disabled] .c{text-decoration:line-through}
+.bk-car{display:flex;align-items:center;gap:14px;margin:6px 20px 0;padding:12px 14px;border-radius:var(--r-l);border:1px solid var(--line);background:var(--surface)}
+.bk-car img{width:120px;aspect-ratio:16/10;object-fit:contain;flex:none}
+.bk-car b{display:block;font-weight:600}
+.bk-car span{color:var(--muted);font-size:13px}
+.demand{margin:10px 20px 0;padding:16px;border-radius:var(--r-l);border:1px solid var(--line);background:var(--surface);display:flex;align-items:flex-end;justify-content:space-between;gap:16px}
+.demand .big{font:700 34px/1 var(--f-display);margin-top:8px}
+.demand p{margin:6px 0 0;font-size:12px;color:var(--muted);max-width:170px}
+.bars{display:flex;gap:6px;align-items:flex-end;height:72px}
+.bars div{display:flex;flex-direction:column;align-items:center;gap:4px}
+.bars i{display:block;width:12px;border-radius:4px;background:var(--surface-2);position:relative;overflow:hidden;height:56px}
+.bars i b{position:absolute;left:0;right:0;bottom:0;background:linear-gradient(180deg,var(--blue-hi),var(--blue));border-radius:4px}
+.bars small{font:500 10px var(--f-mono);color:var(--dim)}
+.cal{margin:0 20px;padding:14px;border-radius:var(--r-l);border:1px solid var(--line);background:var(--surface)}
+.cal-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+.cal-head b{font:700 15px var(--f-display)}
+.cal-head .iconbtn{width:36px;height:36px}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px 0}
+.cal-grid .wd{text-align:center;font:600 10px var(--f-mono);color:var(--dim);padding:4px 0;text-transform:uppercase}
+.cd{position:relative;height:42px;display:grid;place-items:center;font-weight:600;font-size:14px}
+.cd span{position:relative;z-index:1;width:38px;height:38px;display:grid;place-items:center;border-radius:50%}
+.cd.in::before{content:"";position:absolute;inset:4px 0;background:rgba(46,91,255,.16)}
+.cd.s::before{left:50%}
+.cd.e::before{right:50%}
+.cd.s span,.cd.e span{background:var(--blue);color:#fff;box-shadow:0 0 18px var(--glow)}
+.cd.last span::after{content:"";position:absolute;bottom:4px;width:4px;height:4px;border-radius:50%;background:var(--warn)}
+.cd.busy,.cd.past{color:var(--dim);cursor:not-allowed}
+.cd.busy span{text-decoration:line-through;text-decoration-color:var(--bad);text-decoration-thickness:1.5px}
+.cd.today span{border:1px solid var(--line-2)}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin-top:10px;font-size:12px;color:var(--muted)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:8px;height:8px;border-radius:50%}
+.cal-msg{margin:10px 0 0;padding:10px 12px;border-radius:var(--r-s);font-size:13px;background:rgba(255,99,114,.10);color:#FFB3BA;border:1px solid rgba(255,99,114,.25)}
+.seg{display:flex;flex-wrap:wrap;gap:8px}
+.seg button{height:44px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:var(--surface);font-weight:600;font-size:14px;transition:all .2s}
+.seg button[aria-pressed="true"]{background:var(--text);color:#0A0D14;border-color:var(--text)}
+.places{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.place{display:flex;flex-direction:column;gap:4px;padding:12px 14px;border-radius:var(--r-m);border:1px solid var(--line);background:var(--surface);text-align:left;min-height:76px;transition:border-color .2s}
+.place b{font-weight:600;font-size:14px;line-height:1.25}
+.place span{font:500 12px var(--f-mono);color:var(--muted)}
+.place[aria-pressed="true"]{border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}
+.summary{margin:0 20px;padding:16px;border-radius:var(--r-l);border:1px solid var(--line);background:var(--surface)}
+.sum-row{display:flex;justify-content:space-between;gap:12px;padding:7px 0;font-size:14px}
+.sum-row span:first-child{color:var(--muted)}
+.sum-row.disc span:last-child{color:var(--ok)}
+.sum-row.total{border-top:1px dashed var(--line-2);margin-top:6px;padding-top:12px;font-weight:700}
+.sum-row.total span:last-child{font:700 20px var(--f-display)}
+.note{font-size:12px;color:var(--muted);margin:10px 0 0;line-height:1.45}
+
+/* rewards (ref: insights gauge) */
+.gauge{position:relative;margin:4px auto 0;width:280px;max-width:100%}
+.gauge > svg{display:block;width:100%;height:auto}
+.lvl-chip .ico{width:14px;height:14px}
+.gauge .mid{position:absolute;left:0;right:0;top:44%;text-align:center}
+.gauge .mid b{display:block;font:700 40px/1 var(--f-display);letter-spacing:-.02em}
+.gauge .mid span{color:var(--muted);font-size:13px}
+.lvl-chip{display:inline-flex;align-items:center;gap:6px;margin-top:10px;padding:5px 10px;border-radius:999px;background:var(--surface-2);border:1px solid var(--line-2);font-size:12px;font-weight:600}
+.levels{display:flex;gap:8px;overflow-x:auto;padding:0 20px;scrollbar-width:none}
+.levels::-webkit-scrollbar{display:none}
+.lvl{flex:0 0 150px;padding:14px;border-radius:var(--r-l);border:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;gap:6px}
+.lvl b{font:700 15px var(--f-display)}
+.lvl .pct{font:700 24px var(--f-display);color:var(--blue-hi)}
+.lvl p{margin:0;font-size:12px;color:var(--muted);line-height:1.35}
+.lvl.cur{border-color:var(--blue);background:linear-gradient(160deg,rgba(46,91,255,.18),var(--surface) 60%)}
+.lvl.black{background:linear-gradient(160deg,#1a1d24,#07080b);border-color:#3a4152}
+.act{padding:16px;border-radius:var(--r-l);border:1px solid var(--line);background:var(--surface)}
+.act-grid{display:grid;grid-template-columns:repeat(12,1fr);gap:5px;margin-top:12px}
+.act-grid i{height:14px;border-radius:7px;background:var(--surface-2);border:1px solid var(--line)}
+.act-grid i.l1{background:rgba(46,91,255,.35);border-color:transparent}
+.act-grid i.l2{background:var(--blue);border-color:transparent}
+.act-grid i.l3{background:#fff;border-color:transparent}
+.act-months{display:grid;grid-template-columns:repeat(12,1fr);gap:5px;margin-top:6px;font:500 9px var(--f-mono);color:var(--dim);text-align:center}
+.missions{display:flex;flex-direction:column;gap:8px}
+.mission{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r-m);border:1px solid var(--line);background:var(--surface)}
+.mission .mi{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;background:var(--surface-2);color:var(--blue-hi);flex:none}
+.mission .t{flex:1;min-width:0}
+.mission .t b{display:block;font-weight:600;font-size:14px}
+.mission .t span{font-size:12px;color:var(--muted)}
+.mission .rw{font:700 13px var(--f-mono);color:var(--blue-hi);white-space:nowrap}
+
+/* gifts */
+.cert{position:relative;margin:6px 20px 0;aspect-ratio:1.62;max-width:calc(100% - 40px);border-radius:20px;padding:20px;overflow:hidden;border:1px solid #2b3550;
+  background:radial-gradient(120% 90% at 100% 100%,rgba(46,91,255,.35),transparent 55%),linear-gradient(150deg,#141a2b,#06070b 70%);display:flex;flex-direction:column;justify-content:space-between;box-shadow:0 30px 60px -30px rgba(46,91,255,.5)}
+.cert::before{content:"";position:absolute;inset:0;background:repeating-linear-gradient(115deg,transparent 0 22px,rgba(255,255,255,.025) 22px 23px)}
+.cert > *{position:relative}
+.cert .top{display:flex;justify-content:space-between;align-items:center}
+.cert .amt{font:700 38px/1 var(--f-display);letter-spacing:-.02em}
+.cert .amt small{font-size:18px;color:var(--blue-hi)}
+.cert .to{font-size:13px;color:#C2C9D8}
+.cert .code{font:600 12px var(--f-mono);letter-spacing:.14em;color:var(--muted)}
+.cert .car-line{position:absolute;right:-26px;top:30%;width:220px;filter:drop-shadow(0 14px 12px rgba(0,0,0,.7))}
+.cert .car-line img{width:100%}
+.cert .duck-art{position:absolute;right:-2px;top:36px;width:124px;transform:rotate(-7deg);filter:drop-shadow(0 0 26px rgba(46,91,255,.55))}
+.cert .duck-art img{width:100%;height:auto;display:block}
+.cert .emv{width:38px;height:28px;border-radius:6px;background:linear-gradient(135deg,#d9dee8,#8b93a3 55%,#c7ccd6);position:relative;box-shadow:inset 0 0 0 1px rgba(0,0,0,.25)}
+.cert .emv::before{content:"";position:absolute;inset:6px 0;border-top:1px solid rgba(0,0,0,.3);border-bottom:1px solid rgba(0,0,0,.3)}
+.cert .emv::after{content:"";position:absolute;inset:0 13px;border-left:1px solid rgba(0,0,0,.3);border-right:1px solid rgba(0,0,0,.3)}
+.cert .mid{display:flex;align-items:center;gap:10px;color:var(--muted)}
+.cert.mini{margin:0 0 14px;max-width:100%}
+.cert.flip{animation:flip .9s var(--ease) both}
+@keyframes flip{from{opacity:0;transform:perspective(900px) rotateY(-70deg) scale(.9)}to{opacity:1;transform:none}}
+.channels{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.channels button{display:flex;flex-direction:column;align-items:center;gap:6px;padding:12px 4px;border-radius:var(--r-m);border:1px solid var(--line);background:var(--surface);font-size:12px;font-weight:600}
+.channels button .ico{color:var(--blue-hi)}
+.channels button[aria-pressed="true"]{border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}
+.sent{display:flex;align-items:center;gap:10px;padding:12px 14px;border-radius:var(--r-m);background:rgba(69,212,155,.10);color:var(--ok);font-weight:600;font-size:14px}
+.greet-card{text-align:center;margin-bottom:14px}
+.greet-card .label{color:var(--blue-hi)}
+.greet-card h2{margin:8px 0 4px}
+.greet-card blockquote{margin:12px 0 0;padding:12px 14px;border-radius:var(--r-m);background:var(--surface);border:1px solid var(--line);font-size:14px;color:#C2C9D8;text-align:left}
+.phone{display:flex;align-items:center;border-radius:var(--r-m);border:1px solid var(--line);background:var(--surface)}
+.phone:focus-within{border-color:var(--blue)}
+.phone span{padding:0 4px 0 14px;font-weight:600;color:var(--muted)}
+.phone input{border:0!important;background:none!important;padding-left:4px!important}
+.field.bad input,.field.bad .phone{border-color:var(--bad)}
+.steps{display:flex;gap:6px;justify-content:center;margin:-4px 0 14px}
+.steps i{width:22px;height:4px;border-radius:2px;background:var(--line-2)}
+.steps i.on{background:var(--blue-hi)}
+.bsum{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:var(--r-m);border:1px solid var(--line);background:var(--surface);margin-bottom:16px}
+.bsum img{width:84px;aspect-ratio:16/10;object-fit:contain}
+.bsum b{display:block;font-size:14px}
+.bsum span{font-size:12px;color:var(--muted)}
+
+.amounts{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
+.amounts button{height:48px;border-radius:var(--r-m);border:1px solid var(--line);background:var(--surface);font:700 13px var(--f-display);transition:all .2s}
+.amounts button[aria-pressed="true"]{background:var(--blue);border-color:var(--blue);color:#fff}
+.exps{display:flex;flex-direction:column;gap:8px}
+.exp{display:flex;align-items:center;gap:12px;padding:10px 14px 10px 10px;border-radius:var(--r-m);border:1px solid var(--line);background:var(--surface);text-align:left;transition:border-color .2s}
+.exp img{width:96px;aspect-ratio:16/10;object-fit:contain;flex:none}
+.exp .t{flex:1;min-width:0}
+.exp .t b{display:block;font-weight:600;font-size:14px;line-height:1.3}
+.exp .t span{font-size:12px;color:var(--muted)}
+.exp .p{font:700 14px var(--f-display);white-space:nowrap}
+.exp[aria-pressed="true"]{border-color:var(--blue);box-shadow:inset 0 0 0 1px var(--blue)}
+.field{display:flex;flex-direction:column;gap:6px}
+.field input,.field textarea{width:100%;padding:13px 14px;border-radius:var(--r-m);border:1px solid var(--line);background:var(--surface);outline:none;resize:none}
+.field input:focus,.field textarea:focus{border-color:var(--blue)}
+.field .err{font-size:12px;color:#FFB3BA}
+
+/* profile */
+.me{display:flex;align-items:center;gap:14px;padding:6px 20px 0}
+.avatar{width:62px;height:62px;border-radius:50%;display:grid;place-items:center;font:700 20px var(--f-display);background:linear-gradient(135deg,var(--blue),#0d1a52);box-shadow:0 0 0 3px var(--bg),0 0 0 4px var(--blue)}
+.me h1{font:700 19px/1.2 var(--f-display);margin:0}
+.me p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.rows{display:flex;flex-direction:column;border-radius:var(--r-l);border:1px solid var(--line);background:var(--surface);overflow:hidden}
+.rowi{display:flex;align-items:center;gap:12px;min-height:58px;padding:10px 14px;border-bottom:1px solid var(--line);text-align:left}
+.rowi:last-child{border-bottom:0}
+.rowi .ico{color:var(--muted)}
+.rowi .t{flex:1;min-width:0}
+.rowi .t b{display:block;font-weight:600;font-size:14px}
+.rowi .t span{font-size:12px;color:var(--muted)}
+.ok{color:var(--ok);font:600 12px var(--f-mono);display:inline-flex;align-items:center;gap:4px}
+.ok .ico{width:14px;height:14px}
+.trip{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:var(--r-l);border:1px solid var(--line);background:var(--surface)}
+.trip img{width:100px;aspect-ratio:16/10;object-fit:contain;flex:none}
+.trip .t{flex:1;min-width:0}
+.trip .t b{display:block;font-weight:600;font-size:14px}
+.trip .t span{font-size:12px;color:var(--muted)}
+.trip.active{border-color:var(--blue);background:linear-gradient(120deg,rgba(46,91,255,.14),var(--surface) 70%)}
+.owner-card{display:flex;align-items:center;gap:14px;width:100%;padding:16px;border-radius:var(--r-l);border:1px solid var(--blue);background:linear-gradient(120deg,var(--blue-deep),var(--surface) 75%);text-align:left}
+.owner-card .ico{width:26px;height:26px;color:var(--blue-hi)}
+.owner-card b{display:block;font:700 15px var(--f-display)}
+.owner-card span{font-size:13px;color:#C2C9D8}
+
+/* owner panel */
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.kpi{padding:14px;border-radius:var(--r-l);border:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;gap:6px;min-width:0}
+.kpi b{font:700 21px/1.1 var(--f-display);white-space:nowrap}
+.kpi .delta{font:600 12px var(--f-mono);color:var(--ok)}
+.chart{padding:16px;border-radius:var(--r-l);border:1px solid var(--line);background:var(--surface)}
+.chart svg{display:block;width:100%;height:auto;margin-top:10px}
+.fleet{display:flex;flex-direction:column;gap:6px}
+.fl{display:flex;align-items:center;gap:12px;padding:8px 12px 8px 8px;border-radius:var(--r-m);border:1px solid var(--line);background:var(--surface)}
+.fl img{width:84px;aspect-ratio:16/10;object-fit:contain;flex:none}
+.fl .t{flex:1;min-width:0}
+.fl .t b{display:block;font-weight:600;font-size:13px}
+.fl .t span{font:500 11px var(--f-mono);color:var(--muted)}
+.st{display:inline-flex;align-items:center;gap:6px;height:26px;padding:0 10px;border-radius:999px;font:600 11px var(--f-body);white-space:nowrap;border:1px solid var(--line-2)}
+.st::before{content:"";width:6px;height:6px;border-radius:50%;background:currentColor}
+.st.rent{color:var(--blue-hi)}
+.st.free{color:var(--ok)}
+.st.wash{color:#8FD3FF}
+.st.service{color:var(--warn)}
+
+/* splash */
+.splash{position:absolute;inset:0;z-index:60;clip-path:inset(0 round var(--dev-r,48px));display:grid;place-items:center;background:radial-gradient(60% 40% at 50% 46%,rgba(46,91,255,.28),transparent 70%),var(--bg);transition:opacity .5s var(--ease),visibility 0s .5s}
+.splash.out{opacity:0;visibility:hidden}
+.splash-in{display:flex;flex-direction:column;align-items:center;gap:16px;animation:pop .7s var(--ease) both}
+.splash-duck img{width:132px;height:auto;filter:drop-shadow(0 0 28px rgba(46,91,255,.45))}
+.splash-word img{height:44px;width:auto}
+@keyframes pop{from{opacity:0;transform:scale(.9) translateY(10px)}to{opacity:1;transform:none}}
+.credits{font-size:12px;color:var(--muted);line-height:1.5}
+.credits summary{cursor:pointer;padding:14px;font-weight:600;color:var(--text);list-style:none;display:flex;justify-content:space-between}
+.credits ul{margin:0;padding:0 14px 14px 30px}
+/* tab bar */
+.tabbar{position:absolute;left:12px;right:12px;bottom:calc(12px + env(safe-area-inset-bottom,0px));z-index:20;height:68px;display:grid;grid-template-columns:repeat(5,1fr);align-items:center;border-radius:34px;background:rgba(16,20,28,.86);border:1px solid var(--line-2);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);transition:transform .35s var(--ease),opacity .25s}
+.tabbar.hide{transform:translateY(130%);opacity:0;pointer-events:none}
+.tab{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;color:var(--dim);font-size:10px;font-weight:600;transition:color .2s}
+.tab .ico{width:22px;height:22px}
+.tab[aria-current="page"]{color:var(--text)}
+.tab.center span.cbtn{width:56px;height:56px;border-radius:50%;background:var(--blue);color:#fff;display:grid;place-items:center;box-shadow:0 0 0 6px rgba(7,9,13,.9),0 10px 30px -6px var(--glow);transform:translateY(-14px);transition:transform .2s}
+.tab.center span.cbtn .ico{width:24px;height:24px}
+.tab.center span.lbl{margin-top:-10px}
+.tab.center[aria-current="page"] span.cbtn{transform:translateY(-14px) scale(1.06)}
+
+/* bottom sheet */
+.scrim{position:absolute;inset:0;z-index:40;background:rgba(3,4,7,.72);backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px);display:flex;align-items:flex-end;animation:fade .25s}
+.bsheet{width:100%;max-height:92%;overflow-y:auto;border-radius:28px 28px 0 0;background:var(--bg-2);border-top:1px solid var(--line-2);padding:10px 20px calc(24px + env(safe-area-inset-bottom,0px));animation:up .4s var(--ease)}
+@keyframes up{from{transform:translateY(100%)}to{transform:none}}
+.grab{width:40px;height:4px;border-radius:2px;background:var(--line-2);margin:0 auto 16px}
+.success-ic{width:72px;height:72px;margin:6px auto 12px;border-radius:50%;display:grid;place-items:center;background:var(--blue);box-shadow:0 0 0 8px rgba(46,91,255,.14),0 0 40px var(--glow)}
+.success-ic .ico{width:34px;height:34px;color:#fff;stroke-width:2.4}
+.bsheet h2{text-align:center;font:700 21px var(--f-display);margin:0 0 6px}
+.bsheet .lead{text-align:center;color:var(--muted);margin:0 0 18px;font-size:14px}
+.codebox{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:14px 16px;border-radius:var(--r-m);border:1px dashed var(--line-2);background:var(--surface)}
+.codebox b{font:600 20px var(--f-mono);letter-spacing:.12em}
+.earn{display:flex;align-items:center;gap:10px;margin-top:10px;padding:12px 14px;border-radius:var(--r-m);background:rgba(46,91,255,.12);color:var(--blue-hi);font-weight:600;font-size:14px}
+
+@media (prefers-reduced-motion:reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important;scroll-behavior:auto!important}
+  .c-item{transition:none}
+}
+</style>
+
+</head>
+<body>
+<div class="stage">
+  <aside class="pitch" aria-label="Про демо">
+    <div class="brand"><span class="brand-mark" data-brand-mark></span><span class="brand-name" data-brand></span></div>
+    <h1>Застосунок для вашого прокату авто</h1>
+    <p>Інтерактивне демо. Натискайте на екрані телефона або оберіть сценарій нижче.</p>
+    <ol id="pitchList">
+      <li><button data-act="jump" data-to="home"><span class="label">01</span>Каталог за класами</button></li>
+      <li><button data-act="jump" data-to="booking"><span class="label">02</span>Календар вільних дат</button></li>
+      <li><button data-act="jump" data-to="rewards"><span class="label">03</span>Токени та рівні клієнта</button></li>
+      <li><button data-act="jump" data-to="gifts"><span class="label">04</span>Подарункові сертифікати</button></li>
+      <li><button data-act="jump" data-to="owner"><span class="label">05</span>Панель власника</button></li>
+    </ol>
+    <small>Ціни орієнтовні для Києва, листопад 2026. Дані автопарку демонстраційні. Фото авто: Wikimedia Commons (CC BY-SA, CC BY, CC0), фон вирізано; автори в Профілі.</small>
+  </aside>
+
+  <div class="device" id="device">
+    <div class="statusbar" aria-hidden="true"><span>9:41</span><span class="sb-r">
+      <svg width="18" height="12" viewBox="0 0 18 12" fill="currentColor"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5" width="3" height="7" rx="1"/><rect x="10" y="2.5" width="3" height="9.5" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+      <svg width="26" height="12" viewBox="0 0 26 12" fill="none"><rect x=".5" y=".5" width="22" height="11" rx="3.5" stroke="currentColor" opacity=".5"/><rect x="2" y="2" width="17" height="8" rx="2" fill="currentColor"/><rect x="24" y="4" width="1.6" height="4" rx=".8" fill="currentColor" opacity=".5"/></svg>
+    </span></div>
+
+    <main class="screens">
+      <section class="screen on" id="s-home" aria-label="Головна"></section>
+      <section class="screen" id="s-catalog" aria-label="Каталог"></section>
+      <section class="screen" id="s-rewards" aria-label="Бонуси"></section>
+      <section class="screen" id="s-gifts" aria-label="Подарунки"></section>
+      <section class="screen" id="s-profile" aria-label="Профіль"></section>
+      <section class="screen push" id="s-detail" aria-label="Авто"></section>
+      <section class="screen push" id="s-booking" aria-label="Бронювання"></section>
+      <section class="screen" id="s-owner" aria-label="Панель власника"></section>
+    </main>
+
+    <nav class="tabbar" id="tabbar" aria-label="Головне меню"></nav>
+    <div id="sheet"></div>
+    <div class="splash" id="splash" data-act="splash" aria-hidden="true"><div class="splash-in"><div class="splash-duck"></div><div class="splash-word"></div><span class="label">прокат авто</span></div></div>
+  </div>
+</div>
+
+<script>
+/* ===================== CONFIG: rename the brand here ===================== */
+const BRAND = "PIZNO";
+const CITY = "Київ";
+const USER = {first:"Олександр", vocative:"Олександре", last:"Коваль", rentals:8, tokens:1840};
+
+/* ===================== DATA ===================== */
+const CLASSES = {
+  eco:{name:"Економ", hint:"від 1 000 ₴", casco:250},
+  comfort:{name:"Комфорт", hint:"від 1 700 ₴", casco:350},
+  business:{name:"Бізнес", hint:"від 2 800 ₴", casco:600},
+  elite:{name:"Еліт", hint:"від 6 500 ₴", casco:1200}
+};
+// price = UAH/day for 1–3 days. deposit in UAH.
+const CARS = [
+  {id:"logan",make:"Renault",model:"Logan",year:2021,cls:"eco",body:"sedan",color:"#BCC3CD",gear:"Механіка",fuel:"Бензин 1.6",seats:5,cons:"6,8 л",price:1000,deposit:5000,units:4,rating:4.7,reviews:212},
+  {id:"fabia",make:"Skoda",model:"Fabia",year:2020,cls:"eco",body:"hatch",color:"#E6E9EE",gear:"Механіка",fuel:"Бензин 1.0",seats:5,cons:"5,6 л",price:1050,deposit:5000,units:3,rating:4.6,reviews:167},
+  {id:"accent",make:"Hyundai",model:"Accent",year:2021,cls:"eco",body:"sedan",color:"#8F1A24",gear:"Автомат",fuel:"Бензин 1.6",seats:5,cons:"7,1 л",price:1150,deposit:6000,units:3,rating:4.8,reviews:190},
+  {id:"rio",make:"Kia",model:"Rio",year:2022,cls:"eco",body:"hatch",color:"#1F3F8F",gear:"Автомат",fuel:"Бензин 1.4",seats:5,cons:"6,4 л",price:1200,deposit:6000,units:4,rating:4.8,reviews:241},
+  {id:"yaris",make:"Toyota",model:"Yaris Hybrid",year:2022,cls:"eco",body:"hatch",color:"#3A3F48",gear:"Автомат",fuel:"Гібрид",seats:5,cons:"3,9 л",price:1350,deposit:7000,units:2,rating:4.9,reviews:98},
+  {id:"octavia",make:"Skoda",model:"Octavia Combi",year:2022,cls:"comfort",body:"sedan",color:"#6C7480",gear:"DSG",fuel:"Дизель 2.0",seats:5,cons:"4,9 л",price:1700,deposit:10000,units:3,rating:4.9,reviews:176},
+  {id:"corolla",make:"Toyota",model:"Corolla",year:2022,cls:"comfort",body:"sedan",color:"#ECEEF1",gear:"Автомат",fuel:"Гібрид",seats:5,cons:"4,5 л",price:1800,deposit:10000,units:3,rating:4.8,reviews:154},
+  {id:"sportage",make:"Kia",model:"Sportage",year:2022,cls:"comfort",body:"suv",color:"#2A2E35",gear:"Автомат",fuel:"Бензин 2.0",seats:5,cons:"8,2 л",price:2200,deposit:12000,units:2,rating:4.8,reviews:121},
+  {id:"tesla3",make:"Tesla",model:"Model 3",year:2022,cls:"comfort",body:"sedan",color:"#F4F5F7",gear:"Автомат",fuel:"Електро",seats:5,cons:"490 км",price:2300,deposit:15000,units:2,rating:4.9,reviews:87,ev:true},
+  {id:"rav4",make:"Toyota",model:"RAV4 Hybrid",year:2022,cls:"comfort",body:"suv",color:"#868B92",gear:"Автомат",fuel:"Гібрид",seats:5,cons:"5,6 л",price:2500,deposit:15000,units:2,rating:4.9,reviews:133},
+  {id:"camry",make:"Toyota",model:"Camry",year:2022,cls:"business",body:"sedan",color:"#121418",gear:"Автомат",fuel:"Бензин 2.5",seats:5,cons:"7,9 л",price:2800,deposit:20000,units:3,rating:4.9,reviews:208},
+  {id:"bmw5",make:"BMW",model:"520d",year:2021,cls:"business",body:"sedan",color:"#1E2D4D",gear:"Автомат",fuel:"Дизель 2.0",seats:5,cons:"5,4 л",price:3800,deposit:30000,units:2,rating:4.9,reviews:96},
+  {id:"q5",make:"Audi",model:"Q5",year:2021,cls:"business",body:"suv",color:"#575C64",gear:"Автомат",fuel:"Дизель 2.0",seats:5,cons:"6,6 л",price:3900,deposit:30000,units:1,rating:4.8,reviews:64},
+  {id:"e220",make:"Mercedes-Benz",model:"E 220d",year:2021,cls:"business",body:"sedan",color:"#E4E6E9",gear:"Автомат",fuel:"Дизель 2.0",seats:5,cons:"5,3 л",price:4000,deposit:30000,units:2,rating:4.9,reviews:112},
+  {id:"touareg",make:"Volkswagen",model:"Touareg",year:2021,cls:"business",body:"suv",color:"#1A1C20",gear:"Автомат",fuel:"Дизель 3.0",seats:5,cons:"8,1 л",price:4200,deposit:35000,units:1,rating:4.9,reviews:58},
+  {id:"v250",make:"Mercedes-Benz",model:"V 250 VIP",year:2022,cls:"elite",body:"van",color:"#0E0F12",gear:"Автомат",fuel:"Дизель 2.1",seats:7,cons:"8,0 л",price:6500,deposit:50000,units:1,rating:5.0,reviews:41},
+  {id:"cayenne",make:"Porsche",model:"Cayenne Coupé",year:2022,cls:"elite",body:"suv",color:"#F1F2F4",gear:"Автомат",fuel:"Бензин 3.0",seats:5,cons:"11,4 л",price:9000,deposit:80000,units:1,rating:5.0,reviews:37},
+  {id:"x7",make:"BMW",model:"X7",year:2022,cls:"elite",body:"suv",color:"#14213D",gear:"Автомат",fuel:"Дизель 3.0",seats:7,cons:"8,9 л",price:9500,deposit:80000,units:1,rating:4.9,reviews:29},
+  {id:"rrs",make:"Range Rover",model:"Sport",year:2023,cls:"elite",body:"suv",color:"#3A3F45",gear:"Автомат",fuel:"Гібрид 3.0",seats:5,cons:"9,1 л",price:11000,deposit:100000,units:1,rating:5.0,reviews:22},
+  {id:"s500",make:"Mercedes-Benz",model:"S 500 4MATIC",year:2022,cls:"elite",body:"sedan",color:"#0B0C0F",gear:"Автомат",fuel:"Бензин 3.0",seats:5,cons:"10,2 л",price:12000,deposit:100000,units:1,rating:5.0,reviews:31},
+  {id:"p911",make:"Porsche",model:"911 Turbo S",year:2022,cls:"elite",body:"coupe",color:"#5A5F66",gear:"PDK",fuel:"Бензин 3.8",seats:4,cons:"11,1 л",price:16000,deposit:150000,units:1,rating:5.0,reviews:19}
+];
+const TIERS = [{label:"1–3 доби",min:1,max:3,k:1},{label:"4–7",min:4,max:7,k:.9},{label:"8–15",min:8,max:15,k:.82},{label:"16–30",min:16,max:30,k:.75}];
+const LEVELS = [
+  {id:"start",name:"Старт",pct:0,from:0,text:"З першої оренди: 5% вартості повертається токенами"},
+  {id:"silver",name:"Срібло",pct:5,from:3,text:"Від 3 оренд. Знижка на кожну поїздку"},
+  {id:"gold",name:"Золото",pct:10,from:8,text:"Від 8 оренд. Безкоштовне дитяче крісло"},
+  {id:"black",name:"Black",pct:15,from:15,text:"Від 15 оренд. Безкоштовна подача та пріоритет на Еліт"}
+];
+const PLACES = [
+  {id:"office",name:"Офіс на Печерську",fee:0,meta:"безкоштовно"},
+  {id:"door",name:"Доставка за адресою",fee:400,meta:"+400 ₴ · 30 хв"},
+  {id:"kbp",name:"Аеропорт Бориспіль",fee:600,meta:"+600 ₴"},
+  {id:"rail",name:"Центральний вокзал",fee:300,meta:"+300 ₴"}
+];
+const TIMES = ["09:00","12:00","15:00","18:00","21:00"];
+const EXPERIENCES = [
+  {id:"x911",car:"p911",title:"Вихідні з Porsche 911",sub:"2 доби, повне КАСКО, подача до дверей",price:32000},
+  {id:"xwed",car:"s500",title:"Весільний день на S-Class",sub:"10 годин з водієм, оформлення авто",price:18000},
+  {id:"xev",car:"tesla3",title:"Перший день на Tesla",sub:"1 доба, повна зарядка, інструктаж",price:2300}
+];
+
+/* ===================== HELPERS ===================== */
+const $ = (s,r=document)=>r.querySelector(s);
+const esc = s=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const money = n=>Math.round(n).toLocaleString("uk-UA")+" ₴";
+const round50 = n=>Math.round(n/50)*50;
+const carById = id=>CARS.find(c=>c.id===id);
+const MONTHS = ["Січень","Лютий","Березень","Квітень","Травень","Червень","Липень","Серпень","Вересень","Жовтень","Листопад","Грудень"];
+const MONTHS_G = ["січня","лютого","березня","квітня","травня","червня","липня","серпня","вересня","жовтня","листопада","грудня"];
+const WD = ["Нд","Пн","Вт","Ср","Чт","Пт","Сб"];
+const DAY = 864e5;
+const today0 = (()=>{const d=new Date();d.setHours(0,0,0,0);return d})();
+const addDays=(d,n)=>{const x=new Date(d);x.setDate(x.getDate()+n);return x};
+const sameDay=(a,b)=>a&&b&&a.getTime()===b.getTime();
+const diffDays=(a,b)=>Math.round((b-a)/DAY);
+const fmtDate=d=>`${d.getDate()} ${MONTHS_G[d.getMonth()]}`;
+function plural(n,[one,few,many]){const m10=n%10,m100=n%100;if(m10===1&&m100!==11)return one;if(m10>=2&&m10<=4&&(m100<12||m100>14))return few;return many}
+const daysWord = n=>plural(n,["доба","доби","діб"]);
+function hash(str){let x=2166136261;for(let i=0;i<str.length;i++){x^=str.charCodeAt(i);x=Math.imul(x,16777619)}return (x>>>0)/4294967295}
+function freeUnits(car,d){
+  const idx=Math.floor(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate())/DAY);
+  const blk=hash(car.id+":b"+Math.floor(idx/3)), r=hash(car.id+":d"+idx);
+  const used=Math.floor(blk*car.units+r*.4);
+  return Math.max(0,car.units-used);
+}
+function tierFor(days){return TIERS.find(t=>days>=t.min&&days<=t.max)||TIERS[TIERS.length-1]}
+const rateFor=(car,days)=>round50(car.price*tierFor(days).k);
+function shade(hex,amt){const n=parseInt(hex.slice(1),16);let r=n>>16,g=(n>>8)&255,b=n&255;const t=amt<0?0:255,p=Math.abs(amt);r=Math.round((t-r)*p+r);g=Math.round((t-g)*p+g);b=Math.round((t-b)*p+b);return `rgb(${r},${g},${b})`}
+function currentLevel(n){let l=LEVELS[0];for(const x of LEVELS)if(n>=x.from)l=x;return l}
+function nextLevel(n){return LEVELS.find(x=>x.from>n)}
+
+/* ===================== ICONS ===================== */
+const I = {
+  home:'<path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"/>',
+  grid:'<rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/>',
+  gift:'<rect x="3" y="8" width="18" height="4" rx="1"/><path d="M12 8v13M19 12v8a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1v-8M7.5 8a2.5 2.5 0 0 1 0-5C11 3 12 8 12 8s1-5 4.5-5a2.5 2.5 0 0 1 0 5"/>',
+  user:'<circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.6-6 8-6s8 2 8 6"/>',
+  token:'<path d="M12 2.5 20.5 7.3v9.4L12 21.5l-8.5-4.8V7.3z"/><path d="M12 7.5l4 2.3v4.4l-4 2.3-4-2.3V9.8z"/>',
+  pin:'<path d="M12 21.5s7-6.1 7-11.5a7 7 0 0 0-14 0c0 5.4 7 11.5 7 11.5z"/><circle cx="12" cy="10" r="2.5"/>',
+  left:'<path d="M15 18l-6-6 6-6"/>', right:'<path d="M9 18l6-6-6-6"/>',
+  heart:'<path d="M12 20s-7.5-4.6-9.2-9.3A5 5 0 0 1 12 7a5 5 0 0 1 9.2 3.7C19.5 15.4 12 20 12 20z"/>',
+  cal:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+  clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  gear:'<circle cx="6" cy="6" r="1.8"/><circle cx="12" cy="6" r="1.8"/><circle cx="18" cy="6" r="1.8"/><circle cx="6" cy="18" r="1.8"/><circle cx="12" cy="18" r="1.8"/><path d="M6 8v8M12 8v8M18 8v4H6"/>',
+  fuel:'<path d="M4 21V5a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v16M3 21h13M15 10h2a2 2 0 0 1 2 2v4a1.5 1.5 0 0 0 3 0V8l-3-3M7 8h5"/>',
+  seat:'<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 2.7-5 6-5s6 2 6 5M16 5a3 3 0 0 1 0 6M18 15c2 .6 3 2.2 3 5"/>',
+  star:'<path d="M12 2.8l2.8 5.9 6.4.8-4.7 4.4 1.2 6.4L12 17.2l-5.7 3.1 1.2-6.4L2.8 9.5l6.4-.8z"/>',
+  check:'<path d="M5 12.5l4.5 4.5L19 7.5"/>',
+  shield:'<path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M8.5 12l2.5 2.5 4.5-5"/>',
+  plus:'<path d="M12 5v14M5 12h14"/>',
+  zap:'<path d="M13 2 4 14h7l-1 8 9-12h-7z"/>',
+  key:'<circle cx="7.5" cy="15.5" r="4.5"/><path d="M10.7 12.3 20 3M16 7l3 3M14 9l2 2"/>',
+  bell:'<path d="M6 16v-5a6 6 0 0 1 12 0v5l2 2H4z"/><path d="M10 21h4"/>',
+  search:'<circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/>',
+  x:'<path d="M6 6l12 12M18 6 6 18"/>',
+  arrow:'<path d="M5 12h14M13 6l6 6-6 6"/>',
+  chart:'<path d="M4 20V11M10 20V5M16 20v-7M21 20H3"/>',
+  baby:'<circle cx="12" cy="5.5" r="2.5"/><path d="M7 21v-4a5 5 0 0 1 10 0v4M5 12h14"/>',
+  users:'<circle cx="9" cy="8" r="3"/><path d="M3 20c0-3 2.7-5 6-5s6 2 6 5"/><path d="M17 11v6M14 14h6"/>',
+  driver:'<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2"/><path d="M3.5 10.5 10 12M20.5 10.5 14 12M12 14v7"/>',
+  cake:'<path d="M4 21h16v-8H4zM4 16.5c2 1.4 4 1.4 6 0s4-1.4 6 0 4 1.4 4 0M12 13V9.5"/><path d="M12 7a1.5 1.5 0 0 0 1.5-1.5C13.5 4 12 3 12 3s-1.5 1-1.5 2.5A1.5 1.5 0 0 0 12 7z"/>',
+  msg:'<path d="M21 12a8 8 0 0 1-11.8 7L4 20l1.2-4.6A8 8 0 1 1 21 12z"/>',
+  route:'<path d="M5 21 9.5 3M19 21 14.5 3M12 6v2M12 11v2M12 16v2"/>',
+  doc:'<rect x="4" y="3" width="16" height="18" rx="2"/><path d="M8 8h8M8 12h8M8 16h5"/>',
+  card:'<rect x="3" y="6" width="18" height="13" rx="2"/><path d="M3 10h18M7 15h4"/>',
+  lock:'<rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>',
+  copy:'<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V6a2 2 0 0 1 2-2h8"/>',
+  logout:'<path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l5-5-5-5M15 12H4"/>'
+};
+const ic=(n,cls="")=>`<svg class="ico ${cls}" viewBox="0 0 24 24" aria-hidden="true">${I[n]}</svg>`;
+
+/* ===================== CAR PHOTOS ===================== */
+// Photos: Wikimedia Commons, background removed. Credits in CREDITS below.
+function carSVG(car){return `<img class="car-img" src="cars/${car.id}.webp" alt="${esc(car.make+" "+car.model)}" decoding="async" draggable="false">`}
+const CREDITS={logan:["ROCostiTheBunnyCZ","CC BY-SA 4.0"],fabia:["Vauxford","CC BY-SA 4.0"],accent:["Greg Gjerdingen","CC BY 2.0"],rio:["Jakub CA","CC BY-SA 4.0"],yaris:["TTTNIS","CC0"],octavia:["Alexander Migl","CC BY-SA 4.0"],corolla:["Matti Blume","CC BY-SA 4.0"],sportage:["Alexander Migl","CC BY-SA 4.0"],tesla3:["Alexander-93","CC BY-SA 4.0"],rav4:["TTTNIS","CC0"],camry:["Alexander-93","CC BY-SA 4.0"],bmw5:["Damian B Oh","CC BY-SA 4.0"],q5:["Alexander Migl","CC BY-SA 4.0"],e220:["Chanokchon","CC BY-SA 4.0"],touareg:["Alexander Migl","CC BY-SA 4.0"],v250:["Alexander-93","CC BY-SA 4.0"],cayenne:["Alexander-93","CC BY-SA 4.0"],x7:["Alexander Migl","CC BY-SA 4.0"],rrs:["Alexander-93","CC BY-SA 4.0"],s500:["Alexander Migl","CC BY-SA 4.0"],p911:["Alexander Migl","CC BY-SA 4.0"]};
+const DUCK=`<img src="assets/duck-black.webp" alt="" width="238" height="256">`;
+const wordmark=(h=24)=>`<img class="wordmark" src="assets/wordmark.webp" alt="PIZNO" height="${h}" style="height:${h}px">`;
+
+/* ===================== STATE ===================== */
+const store={get(k,d){try{const v=localStorage.getItem("kl_"+k);return v?JSON.parse(v):d}catch(e){return d}},set(k,v){try{localStorage.setItem("kl_"+k,JSON.stringify(v))}catch(e){}}};
+const S = {
+  screen:"home", hist:[], cls:"all", focusId:null, carId:"rio", banner:0,
+  favs:new Set(store.get("favs",["cayenne","tesla3"])),
+  calMonth:null, start:null, end:null, time:"12:00", place:"door", opts:new Set(), useTokens:true, calMsg:"",
+  tokens:USER.tokens, trips:[], q:"", sent:null,
+  form:{name:USER.first+" "+USER.last, phone:"", addr:"", flight:"", contact:"Дзвінок"},
+  gift:{amount:3000, exp:null, to:"Марина", occasion:"День народження", msg:"З днем народження! Обирай будь-яке авто й катайся"}
+};
+
+/* ===================== NAV ===================== */
+const TABS=[["home","Головна","home"],["catalog","Авто","grid"],["rewards","Бонуси","token"],["gifts","Подарунки","gift"],["profile","Профіль","user"]];
+const PUSH=new Set(["detail","booking","owner"]);
+function renderTabbar(){
+  $("#tabbar").innerHTML=TABS.map(([id,l,i])=>id==="rewards"
+    ?`<button class="tab center" data-act="tab" data-to="${id}" ${S.screen===id?'aria-current="page"':""}><span class="cbtn">${ic(i)}</span><span class="lbl">${l}</span></button>`
+    :`<button class="tab" data-act="tab" data-to="${id}" ${S.screen===id?'aria-current="page"':""}>${ic(i)}<span>${l}</span></button>`).join("");
+}
+const RENDER={home:renderHome,catalog:renderCatalog,rewards:renderRewards,gifts:renderGifts,profile:renderProfile,detail:renderDetail,booking:renderBooking,owner:renderOwner};
+function go(to,{push=true,reset=false}={}){
+  if(reset)S.hist=[];
+  else if(push&&S.screen!==to)S.hist.push(S.screen);
+  S.screen=to;
+  RENDER[to]();
+  document.querySelectorAll(".screen").forEach(s=>s.classList.toggle("on",s.id==="s-"+to));
+  const sc=$("#s-"+to); sc.scrollTop=0;
+  $("#tabbar").classList.toggle("hide",PUSH.has(to));
+  renderTabbar();
+  document.querySelectorAll("#pitchList button").forEach(b=>b.setAttribute("aria-current",String(b.dataset.to===to||(to==="detail"&&b.dataset.to==="home"))));
+  if(to==="home")setupCarousel();
+}
+function back(){const p=S.hist.pop()||"home";go(p,{push:false})}
+
+/* ===================== HOME ===================== */
+function filtered(){return CARS.filter(c=>(S.cls==="all"||c.cls===S.cls)&&(!S.q||(c.make+" "+c.model).toLowerCase().includes(S.q.toLowerCase())))}
+function chipsHTML(){
+  return `<div class="chips" role="group" aria-label="Клас авто">
+    <button class="chip" data-act="cls" data-cls="all" aria-pressed="${S.cls==="all"}"><b>Усі</b><span>${CARS.length} авто</span></button>
+    ${Object.entries(CLASSES).map(([k,v])=>`<button class="chip" data-act="cls" data-cls="${k}" aria-pressed="${S.cls===k}"><b>${v.name}</b><span>${v.hint}</span></button>`).join("")}
+  </div>`;
+}
+function renderHome(){
+  const lvl=currentLevel(USER.rentals),nx=nextLevel(USER.rentals);
+  const list=S.cls==="all"?["rrs","tesla3","bmw5","cayenne","p911","rio","rav4","s500","x7"].map(carById):filtered();
+  if(!list.find(c=>c.id===S.focusId))S.focusId=list[0].id;
+  $("#s-home").innerHTML=`
+  <div class="topbar">
+    <div class="brand"><span class="brand-mark">${keyMark()}</span>${wordmark(26)}</div>
+    <div style="display:flex;gap:8px">
+      <button class="pill" data-act="tab" data-to="rewards" aria-label="Баланс токенів">${ic("token")}<span class="num token-pill">${S.tokens.toLocaleString("uk-UA")}</span></button>
+      <span class="pill">${ic("pin")}${CITY}</span>
+    </div>
+  </div>
+  <div class="greet"><p>Привіт, ${USER.vocative}</p><h1>Яке авто беремо сьогодні?</h1></div>
+  <div class="banners" id="banners">
+    <article class="banner"><span class="idx">01 / 03</span><span class="label eyebrow">Подача за 30 хв · 24/7</span><h3>Сідай.\nКермуй.</h3><p>Авто до дверей будь-де в Києві</p>
+      <button class="btn btn-white" data-act="tab" data-to="catalog">Обрати авто ${ic("arrow")}</button><div class="car-art">${carSVG(carById("rrs"))}</div></article>
+    <article class="banner b2"><span class="idx">02 / 03</span><span class="label eyebrow">День народження</span><h3>−20% на тиждень свята</h3><p>І 500 токенів на рахунок у подарунок</p>
+      <button class="btn btn-white" data-act="tab" data-to="rewards">Як отримати ${ic("arrow")}</button><div class="car-art">${carSVG(carById("e220"))}</div></article>
+    <article class="banner b3"><span class="idx">03 / 03</span><span class="label eyebrow">Подарунок-враження</span><h3>Вихідні з Porsche 911</h3><p>Сертифікат, який точно запам'ятають</p>
+      <button class="btn btn-white" data-act="tab" data-to="gifts">Подарувати ${ic("arrow")}</button><div class="car-art">${carSVG(carById("p911"))}</div></article>
+  </div>
+  <div class="dots" id="bdots" role="group" aria-label="Банери">${[0,1,2].map(i=>`<button data-act="banner" data-i="${i}" aria-label="Банер ${i+1}" aria-current="${i===S.banner}"></button>`).join("")}</div>
+
+  <div class="section-h pad" style="margin-top:18px"><h2>Клас авто</h2><button class="link" data-act="tab" data-to="catalog">Весь автопарк</button></div>
+  ${chipsHTML()}
+  <div class="carousel-wrap">
+    <div class="carousel" id="carousel" aria-label="Авто для вибору">
+      ${list.map(c=>`<button class="c-item" data-act="pick" data-id="${c.id}" aria-label="${esc(c.make+" "+c.model)}">${carSVG(c)}</button>`).join("")}
+    </div>
+    <div class="c-arrows"><button class="iconbtn" data-act="cprev" aria-label="Попереднє авто">${ic("left")}</button><button class="iconbtn" data-act="cnext" aria-label="Наступне авто">${ic("right")}</button></div>
+  </div>
+  <div class="focus" id="focus" aria-live="polite"></div>
+
+  <div class="section-h pad"><h2>Ваші привілеї</h2></div>
+  <div class="teasers">
+    <button class="tcard" data-act="tab" data-to="rewards">${ic("token")}<div><div class="big num">${S.tokens.toLocaleString("uk-UA")}</div><p>токенів = ${money(S.tokens)} знижки</p></div></button>
+    <button class="tcard" data-act="tab" data-to="rewards"><div style="display:flex;justify-content:space-between;align-items:center">${ic("shield")}<span class="label">${lvl.name}</span></div>
+      <div><div class="big">−${lvl.pct}%</div><p style="margin-bottom:8px">${nx?`ще ${nx.from-USER.rentals} оренд до ${nx.name}`:"максимальний рівень"}</p><div class="progress"><i style="width:${USER.rentals/15*100}%"></i></div></div></button>
+  </div>
+  <div class="section-h pad"><h2>Чому обирають нас</h2></div>
+  <div class="pad"><div class="rows">
+    <div class="rowi">${ic("shield")}<div class="t"><b>КАСКО на кожне авто</b><span>Повне покриття без франшизи за бажанням</span></div></div>
+    <div class="rowi">${ic("doc")}<div class="t"><b>Документи через Дію</b><span>Без копій і візиту в офіс, 2 хвилини</span></div></div>
+    <div class="rowi">${ic("clock")}<div class="t"><b>Підтримка 24/7</b><span>Заміна авто протягом 2 годин у разі поломки</span></div></div>
+  </div></div>`;
+  renderFocus();
+  const bn=$("#banners");
+  bn.addEventListener("scroll",()=>{const i=Math.round(bn.scrollLeft/bn.clientWidth);if(i!==S.banner){S.banner=i;document.querySelectorAll("#bdots button").forEach((b,j)=>b.setAttribute("aria-current",String(j===i)))}},{passive:true});
+}
+function keyMark(){return DUCK}
+function renderFocus(){
+  const c=carById(S.focusId);if(!c)return;
+  $("#focus").innerHTML=`<div class="fade-in"><span class="label cls-tag">${CLASSES[c.cls].name} · ${c.year}</span>
+  <h3>${esc(c.make)} ${esc(c.model)}</h3>
+  <div class="price num">${money(c.price)} <small>/ доба</small></div>
+  <span class="hint">гортайте й торкніться авто, щоб відкрити</span></div>`;
+}
+function setupCarousel(){
+  const tr=$("#carousel");if(!tr)return;
+  const items=[...tr.children];let raf=0;
+  const upd=()=>{raf=0;const r=tr.getBoundingClientRect();const cx=r.left+r.width/2;let best=null,bd=1e9;
+    items.forEach(el=>{const b=el.getBoundingClientRect();const c=b.left+b.width/2;const d=Math.min(Math.abs(c-cx)/(r.width*.62),1);el.style.setProperty("--d",d.toFixed(3));if(Math.abs(c-cx)<bd){bd=Math.abs(c-cx);best=el}});
+    if(best&&best.dataset.id!==S.focusId){S.focusId=best.dataset.id;renderFocus()}};
+  tr.addEventListener("scroll",()=>{if(!raf)raf=requestAnimationFrame(upd)},{passive:true});
+  const i=items.findIndex(e=>e.dataset.id===S.focusId);
+  if(i>0){tr.style.scrollSnapType="none";tr.scrollLeft=items[i].offsetLeft-(tr.clientWidth-items[i].offsetWidth)/2;requestAnimationFrame(()=>tr.style.scrollSnapType="")}
+  requestAnimationFrame(upd);
+  document.fonts&&document.fonts.ready.then(()=>requestAnimationFrame(upd));
+}
+function scrollCarTo(el){const tr=$("#carousel");tr.scrollTo({left:el.offsetLeft-(tr.clientWidth-el.offsetWidth)/2,behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"})}
+
+/* ===================== CATALOG ===================== */
+function cardHTML(c){
+  const fav=S.favs.has(c.id);
+  return `<article class="card">
+    <span class="badge${c.ev?" ev":""}">${c.ev?ic("zap")+"Електро":CLASSES[c.cls].name}</span>
+    <button class="art" data-act="open-car" data-id="${c.id}" aria-label="Відкрити ${esc(c.make+" "+c.model)}">${carSVG(c)}</button>
+    <div class="body"><h3>${esc(c.make)} ${esc(c.model)}</h3><span class="sub">${c.year} · ${c.gear} · ${c.fuel}</span>
+      <div class="row"><span class="p num">${money(c.price)}<small> /доба</small></span><button class="go" data-act="open-car" data-id="${c.id}" aria-label="Забронювати ${esc(c.make+" "+c.model)}">${ic("plus")}</button></div></div>
+    <button class="iconbtn" style="position:absolute;top:4px;right:4px;width:40px;height:40px;background:transparent;border:0" data-act="fav" data-id="${c.id}" aria-pressed="${fav}" aria-label="В обране">${ic("heart")}</button>
+  </article>`;
+}
+function renderCatalog(){
+  const list=filtered();
+  $("#s-catalog").innerHTML=`
+  <div class="topbar"><h1 class="h-screen">Автопарк</h1><span class="pill">${ic("pin")}${CITY}</span></div>
+  <label class="search"><span class="sr">Пошук авто</span>${ic("search")}<input id="q" type="search" placeholder="Марка або модель" value="${esc(S.q)}" autocomplete="off"></label>
+  ${chipsHTML()}
+  <div id="grid">${gridHTML(list)}</div>`;
+}
+function gridHTML(list){return list.length?`<div class="grid">${list.map(cardHTML).join("")}</div>`:`<p class="empty">Нічого не знайшли. Спробуйте іншу марку або клас «Усі».</p>`}
+
+/* ===================== DETAIL ===================== */
+function renderDetail(){
+  const c=carById(S.carId),fav=S.favs.has(c.id),cls=CLASSES[c.cls];
+  const opts=optionList(c);
+  $("#s-detail").innerHTML=`
+  <div class="hero">
+    <div class="topbar"><button class="iconbtn" data-act="back" aria-label="Назад">${ic("left")}</button><span class="label">${cls.name}</span><button class="iconbtn" data-act="fav" data-id="${c.id}" aria-pressed="${fav}" aria-label="В обране">${ic("heart")}</button></div>
+    <div class="ghost" aria-hidden="true">${cls.name.toUpperCase()}</div>
+    <div class="floor"></div>
+    <div class="car drive-in">${carSVG(c)}</div>
+  </div>
+  <div class="sheet-panel">
+    <div class="title-row">
+      <div><span class="label">${c.year} · ${c.units>1?`${c.units} авто в парку`:"1 авто в парку"}</span><h1>${esc(c.make)} ${esc(c.model)}</h1>
+        <div class="rating"><span class="stars">${ic("star").repeat(5)}</span><span class="num">${c.rating.toFixed(1).replace(".",",")} · ${c.reviews} відгуків</span></div></div>
+      <div class="price-box"><span class="label">від</span><b class="num">${money(rateFor(c,16))}</b><span class="label">/ доба</span></div>
+    </div>
+    <div class="section-h" style="margin-top:22px"><h2>Ціна за добу</h2><span class="label">що довше, то дешевше</span></div>
+    <div class="tariffs">${TIERS.map((t,i)=>`<div class="tariff"><span class="label">${t.label}</span><b class="num">${rateFor(c,t.min).toLocaleString("uk-UA")}</b><em>${i?`−${Math.round((1-t.k)*100)}%`:"базова"}</em></div>`).join("")}</div>
+    <div class="section-h"><h2>Характеристики</h2></div>
+    <div class="specs">
+      <div class="spec">${ic("gear")}<b>${c.gear}</b><span>Коробка</span></div>
+      <div class="spec">${ic(c.ev?"zap":"fuel")}<b>${c.fuel}</b><span>${c.ev?"Двигун":"Пальне"}</span></div>
+      <div class="spec">${ic("seat")}<b>${c.seats}</b><span>Місць</span></div>
+      <div class="spec">${ic("route")}<b>${c.cons}</b><span>${c.ev?"Запас ходу":"Витрата / 100 км"}</span></div>
+      <div class="spec">${ic("route")}<b>300 км</b><span>Ліміт на добу</span></div>
+      <div class="spec">${ic("lock")}<b class="num">${money(c.deposit)}</b><span>Застава</span></div>
+    </div>
+    <div class="section-h"><h2>Додатково</h2><span class="label">за добу</span></div>
+    <div class="opts">${opts.map(o=>optHTML(o)).join("")}</div>
+  </div>
+  <div class="cta-bar" style="background:linear-gradient(180deg,rgba(11,14,20,0),var(--bg-2) 28%)">
+    <button class="btn btn-blue" data-act="to-booking">${ic("cal")} Обрати дати</button>
+  </div>`;
+}
+function optionList(c){
+  const lvl=currentLevel(USER.rentals);
+  const o=[
+    {id:"casco",ic:"shield",name:"Повне КАСКО без франшизи",sub:"Подряпини та ДТП за наш рахунок",price:CLASSES[c.cls].casco},
+    {id:"seat",ic:"baby",name:"Дитяче крісло",sub:lvl.pct>=10?"Безкоштовно на рівні Золото":"Isofix, 0–36 кг",price:lvl.pct>=10?0:150},
+    {id:"driver2",ic:"users",name:"Другий водій",sub:"Вписуємо в договір онлайн",price:200}
+  ];
+  if(c.cls==="business"||c.cls==="elite")o.push({id:"chauffeur",ic:"driver",name:"Авто з водієм",sub:"Досвідчений водій, до 10 год на добу",price:3000});
+  return o;
+}
+function optHTML(o){return `<button class="opt" data-act="opt" data-id="${o.id}" aria-pressed="${S.opts.has(o.id)}">${ic(o.ic)}<span class="t"><b>${o.name}</b><span>${o.sub}</span></span><span class="label num" style="color:var(--text)">${o.price?"+"+money(o.price):"0 ₴"}</span><span class="sw" aria-hidden="true"></span></button>`}
+
+/* ===================== BOOKING ===================== */
+function rangeFree(car,a,b){for(let d=new Date(a);d<=b;d=addDays(d,1))if(freeUnits(car,d)<1)return false;return true}
+function defaultRange(car){
+  for(let i=1;i<40;i++){const a=addDays(today0,i),b=addDays(a,3);if(rangeFree(car,a,b))return [a,b]}
+  return [addDays(today0,1),addDays(today0,2)];
+}
+function calc(){
+  const c=carById(S.carId);
+  const days=S.end?Math.max(1,diffDays(S.start,S.end)):1;
+  const rate=rateFor(c,days), base=rate*days;
+  const lvl=currentLevel(USER.rentals), disc=Math.round(base*lvl.pct/100);
+  const optSum=optionList(c).filter(o=>S.opts.has(o.id)).reduce((s,o)=>s+o.price*days,0);
+  const place=PLACES.find(p=>p.id===S.place), fee=lvl.id==="black"?0:place.fee;
+  const tokenMax=Math.min(S.tokens,1000,Math.floor((base-disc)*.2));
+  const tok=S.useTokens?tokenMax:0;
+  const total=base-disc+optSum+fee-tok;
+  return {c,days,rate,base,lvl,disc,optSum,place,fee,tokenMax,tok,total,earn:Math.round(total*.05)};
+}
+function renderBooking(){
+  const c=carById(S.carId);
+  if(!S.start){const [a,b]=defaultRange(c);S.start=a;S.end=b}
+  if(!S.calMonth)S.calMonth=new Date(S.start.getFullYear(),S.start.getMonth(),1);
+  const strip=[...Array(14)].map((_,i)=>addDays(today0,i));
+  const week=[...Array(7)].map((_,i)=>addDays(today0,i));
+  const load=week.map(d=>1-freeUnits(c,d)/c.units);
+  const demand=Math.round(Math.max(.35,Math.min(.95,load.reduce((a,b)=>a+b,0)/7+.35))*100);
+  const k=calc();
+  $("#s-booking").innerHTML=`
+  <div class="topbar"><button class="iconbtn" data-act="back" aria-label="Назад">${ic("left")}</button><h1 class="h-screen" style="font-size:18px">Бронювання</h1><span style="width:44px"></span></div>
+  <div class="bk-car">${carSVG(c)}<div><b>${esc(c.make)} ${esc(c.model)}</b><span>${CLASSES[c.cls].name} · ${c.gear}</span></div></div>
+
+  <div class="section-h pad"><h2>Дата подачі</h2><span class="label">${MONTHS[today0.getMonth()]}</span></div>
+  <div class="strip" role="group" aria-label="Дата подачі">${strip.map(d=>{const f=freeUnits(c,d)>0;return `<button class="dayc" data-act="strip" data-t="${d.getTime()}" aria-pressed="${sameDay(d,S.start)}" ${f?"":"disabled"} aria-label="${fmtDate(d)}${f?"":", зайнято"}"><small>${WD[d.getDay()]}</small><span class="c num">${d.getDate()}</span></button>`}).join("")}</div>
+
+  <div class="demand">
+    <div><span class="label">Попит на це авто</span><div class="big num">${demand}%</div><p>${demand>=70?"Високий: цього тижня більшість днів уже заброньовано":"Помірний: є вільні дати цього тижня"}</p></div>
+    <div class="bars" aria-hidden="true">${week.map((d,i)=>`<div><i><b style="height:${Math.round(Math.max(.12,load[i])*100)}%"></b></i><small>${WD[d.getDay()].slice(0,2)}</small></div>`).join("")}</div>
+  </div>
+
+  <div class="section-h pad"><h2>Календар доступності</h2></div>
+  <div class="cal" id="cal">${calHTML(c)}</div>
+
+
+  <div class="section-h pad"><h2>Де забрати</h2></div>
+  <div class="pad"><div class="places">${PLACES.map(p=>`<button class="place" data-act="place" data-v="${p.id}" aria-pressed="${S.place===p.id}"><b>${p.name}</b><span>${p.meta}</span></button>`).join("")}</div></div>
+
+  <div class="section-h pad"><h2>Підсумок</h2></div>
+  <div class="summary" id="summary">${summaryHTML(k)}</div>
+  <div class="cta-bar"><button class="btn btn-blue" id="bookBtn" data-act="confirm" ${S.calMsg?"disabled":""}>Далі · <span class="num">${money(k.total)}</span> ${ic("arrow")}</button></div>`;
+}
+function calHTML(c){
+  const m=S.calMonth,y=m.getFullYear(),mo=m.getMonth();
+  const first=new Date(y,mo,1),offs=(first.getDay()+6)%7,len=new Date(y,mo+1,0).getDate();
+  const canPrev=new Date(y,mo,1)>new Date(today0.getFullYear(),today0.getMonth(),1);
+  let cells=["Пн","Вт","Ср","Чт","Пт","Сб","Нд"].map(w=>`<span class="wd">${w}</span>`).join("");
+  for(let i=0;i<offs;i++)cells+="<span></span>";
+  for(let d=1;d<=len;d++){
+    const dt=new Date(y,mo,d),past=dt<today0,f=past?0:freeUnits(c,dt);
+    const cls=["cd"];let st="вільно";
+    if(past){cls.push("past");st="минуло"}else if(f<1){cls.push("busy");st="зайнято"}else if(f===1&&c.units>1){cls.push("last");st="останнє авто"}
+    if(sameDay(dt,today0))cls.push("today");
+    const s=S.start,e=S.end;
+    if(s&&sameDay(dt,s))cls.push("s");
+    if(e&&sameDay(dt,e))cls.push("e");
+    if(s&&e&&dt>=s&&dt<=e&&!sameDay(s,e))cls.push("in");
+    const dis=past||f<1;
+    cells+=`<button class="${cls.join(" ")}" data-act="day" data-t="${dt.getTime()}" ${dis?"disabled":""} aria-label="${fmtDate(dt)}, ${st}"><span class="num">${d}</span></button>`;
+  }
+  const k=S.end?diffDays(S.start,S.end):0;
+  return `<div class="cal-head"><button class="iconbtn" data-act="cal-prev" ${canPrev?"":"disabled style='opacity:.3'"} aria-label="Попередній місяць">${ic("left")}</button><b>${MONTHS[mo]} ${y}</b><button class="iconbtn" data-act="cal-next" aria-label="Наступний місяць">${ic("right")}</button></div>
+  <div class="cal-grid">${cells}</div>
+  <div class="legend"><span><i style="background:var(--text)"></i>Вільно</span><span><i style="background:var(--warn)"></i>Останнє авто</span><span><i style="background:var(--bad)"></i>Зайнято</span></div>
+  <div class="sum-row" style="margin-top:6px"><span>${S.start?fmtDate(S.start):"—"} → ${S.end?fmtDate(S.end):"оберіть дату повернення"}</span><span class="num">${k?`${k} ${daysWord(k)}`:""}</span></div>
+  ${S.calMsg?`<p class="cal-msg" role="alert">${S.calMsg}</p>`:""}`;
+}
+function summaryHTML(k){
+  return `<div class="sum-row"><span>Оренда · ${k.days} ${daysWord(k.days)} × ${money(k.rate)}</span><span class="num">${money(k.base)}</span></div>
+  ${k.disc?`<div class="sum-row disc"><span>Рівень «${k.lvl.name}» −${k.lvl.pct}%</span><span class="num">−${money(k.disc)}</span></div>`:""}
+  ${k.optSum?`<div class="sum-row"><span>Додаткові опції</span><span class="num">${money(k.optSum)}</span></div>`:""}
+  <div class="sum-row"><span>Подача · ${k.place.name}</span><span class="num">${k.fee?money(k.fee):"0 ₴"}</span></div>
+  <button class="opt" style="margin:8px 0 2px;width:100%" data-act="tokens" aria-pressed="${S.useTokens}">${ic("token")}<span class="t"><b>Списати ${k.tokenMax.toLocaleString("uk-UA")} токенів</b><span>Баланс ${S.tokens.toLocaleString("uk-UA")} · до 1 000 за бронь</span></span><span class="label num" style="color:var(--ok)">−${money(k.tokenMax)}</span><span class="sw" aria-hidden="true"></span></button>
+  <div class="sum-row total"><span>До сплати</span><span class="num">${money(k.total)}</span></div>
+  <p class="note">Застава ${money(k.c.deposit)} блокується на картці й повертається після здачі авто. Після поїздки нарахуємо <b style="color:var(--blue-hi)">+${k.earn} токенів</b>.</p>`;
+}
+function refreshBooking(){
+  const k=calc();
+  $("#cal").innerHTML=calHTML(k.c);
+  $("#summary").innerHTML=summaryHTML(k);
+  const b=$("#bookBtn");b.innerHTML=`Далі · <span class="num">${money(k.total)}</span> ${ic("arrow")}`;b.disabled=!!S.calMsg;
+  document.querySelectorAll(".dayc").forEach(x=>x.setAttribute("aria-pressed",String(sameDay(new Date(+x.dataset.t),S.start))));
+}
+
+/* ===================== REWARDS ===================== */
+function gaugeSVG(pct,id){
+  const a=200-220*pct/100,rad=a*Math.PI/180,kx=110+90*Math.cos(rad),ky=110-90*Math.sin(rad);
+  return `<svg viewBox="0 0 220 160" aria-hidden="true"><defs><linearGradient id="${id}" x1="0" x2="1"><stop offset="0" stop-color="#1B3AB8"/><stop offset="1" stop-color="#7D98FF"/></linearGradient></defs>
+  <path d="M25.4 140.8 A90 90 0 1 1 194.6 140.8" fill="none" stroke="#161B25" stroke-width="22" stroke-linecap="round"/>
+  <path d="M25.4 140.8 A90 90 0 1 1 194.6 140.8" fill="none" stroke="url(#${id})" stroke-width="22" stroke-linecap="round" pathLength="100" stroke-dasharray="${pct} 100"/>
+  <circle cx="${kx.toFixed(1)}" cy="${ky.toFixed(1)}" r="13" fill="#fff"/><circle cx="${kx.toFixed(1)}" cy="${ky.toFixed(1)}" r="5" fill="#2E5BFF"/></svg>`;
+}
+function renderRewards(){
+  const lvl=currentLevel(USER.rentals),nx=nextLevel(USER.rentals);
+  const pct=Math.round(USER.rentals/15*100);
+  const act=[0,1,0,2,1,0,0,3,1,0,2,1]; // rentals per month, last 12 months
+  const now=today0.getMonth();
+  const months=[...Array(12)].map((_,i)=>MONTHS[(now-11+i+12)%12].slice(0,3));
+  const rows=4;
+  $("#s-rewards").innerHTML=`
+  <div class="topbar"><h1 class="h-screen">Бонуси</h1><span class="pill token-pill">${ic("token")}<span class="num">${S.tokens.toLocaleString("uk-UA")}</span></span></div>
+  <div class="gauge">${gaugeSVG(pct,"gg")}<div class="mid"><b class="num">${S.tokens.toLocaleString("uk-UA")}</b><span>токенів · 1 токен = 1 ₴</span><br><span class="lvl-chip">${ic("shield")}Рівень ${lvl.name} · −${lvl.pct}%</span></div></div>
+  <p style="text-align:center;margin:4px 20px 0;color:var(--muted);font-size:14px">${nx?`Ще <b style="color:var(--text)">${nx.from-USER.rentals} оренд</b> до рівня ${nx.name}`:"У вас максимальний рівень"}</p>
+
+  <div class="section-h pad"><h2>Рівні клієнта</h2><span class="label">${USER.rentals} оренд</span></div>
+  <div class="levels">${LEVELS.map(l=>`<div class="lvl ${l.id===lvl.id?"cur":""} ${l.id==="black"?"black":""}"><span class="label">${l.id===lvl.id?"Ваш рівень":`від ${l.from} оренд`}</span><b>${l.name}</b><span class="pct num">${l.pct?`−${l.pct}%`:"5%"}</span><p>${l.text}</p></div>`).join("")}</div>
+
+  <div class="section-h pad"><h2>Як отримати токени</h2></div>
+  <div class="pad"><div class="missions">
+    ${[["route","Кожна оренда","5% вартості повертається токенами","5%"],["msg","Відгук з фото авто","Після завершення поїздки","+100"],["users","Приведи друга","Обом після його першої оренди","+500"],["cake","День народження","−20% на тиждень свята і подарунок","+500"],["cal","Оренда від 7 діб","Подвійні токени за довгу поїздку","×2"]]
+      .map(([i,t,s,r])=>`<div class="mission"><span class="mi">${ic(i)}</span><span class="t"><b>${t}</b><span>${s}</span></span><span class="rw num">${r}</span></div>`).join("")}
+  </div></div>
+
+  <div class="section-h pad"><h2>Ваші поїздки за рік</h2></div>
+  <div class="pad"><div class="act">
+    <div style="display:flex;justify-content:space-between;align-items:baseline"><span class="label">Днів в оренді</span><b class="num" style="font:700 18px var(--f-display)">34</b></div>
+    <div class="act-grid" aria-hidden="true">${[...Array(rows)].map((_,r)=>act.map(v=>`<i class="${v>=rows-r?"l"+Math.min(3,v):""}"></i>`).join("")).join("")}</div>
+    <div class="act-months" aria-hidden="true">${months.map(m=>`<span>${m}</span>`).join("")}</div>
+  </div></div>`;
+}
+
+/* ===================== GIFTS ===================== */
+function renderGifts(){
+  const g=S.gift, exp=g.exp?EXPERIENCES.find(e=>e.id===g.exp):null;
+  const amount=exp?exp.price:g.amount;
+  $("#s-gifts").innerHTML=`
+  <div class="topbar"><h1 class="h-screen">Подарунки</h1><span class="label">сертифікат</span></div>
+  ${certHTML({exp,amount,to:g.to,code:"PZ-•••• -2026",id:"cert"})}
+
+  <div class="section-h pad"><h2>Сума</h2></div>
+  <div class="pad"><div class="amounts" role="group" aria-label="Сума сертифіката">${[1000,3000,5000,10000].map(a=>`<button class="num" data-act="gift-amt" data-v="${a}" aria-pressed="${!exp&&g.amount===a}">${a.toLocaleString("uk-UA")}</button>`).join("")}</div></div>
+
+  <div class="section-h pad"><h2>Або враження</h2></div>
+  <div class="pad"><div class="exps">${EXPERIENCES.map(e=>`<button class="exp" data-act="gift-exp" data-v="${e.id}" aria-pressed="${g.exp===e.id}">${carSVG(carById(e.car))}<span class="t"><b>${e.title}</b><span>${e.sub}</span></span><span class="p num">${money(e.price)}</span></button>`).join("")}</div></div>
+
+  <div class="section-h pad"><h2>Кому і з якої нагоди</h2></div>
+  <form class="pad stack" style="gap:12px" id="giftForm" novalidate>
+    <div class="field"><label class="label" for="g-to">Ім'я отримувача</label><input id="g-to" value="${esc(g.to)}" maxlength="30" autocomplete="off"><span class="err" id="g-err" hidden>Вкажіть ім'я, щоб підписати сертифікат</span></div>
+    <div class="field"><span class="label">Привід</span><div class="seg" role="group" aria-label="Привід">${["День народження","Річниця","Корпоратив","Просто так"].map(o=>`<button type="button" data-act="occ" data-v="${o}" aria-pressed="${g.occasion===o}">${o}</button>`).join("")}</div></div>
+    <div class="field"><label class="label" for="g-msg">Побажання</label><textarea id="g-msg" rows="3" maxlength="160">${esc(g.msg)}</textarea></div>
+    <p class="note" style="margin:0">Сертифікат діє 12 місяців, ним можна оплатити будь-яке авто чи опції. Після оформлення його можна надіслати як онлайн-листівку.</p>
+    <button class="btn btn-blue" type="submit" style="height:56px;font-size:16px">${ic("gift")} Оформити за <span class="num">${money(amount)}</span></button>
+  </form>`;
+}
+
+function certHTML({exp,amount,to,code,id="",cls=""}){
+  return `<div class="cert ${cls}" ${id?`id="${id}"`:""}>
+    <div class="top"><div class="brand"><span class="brand-mark" style="width:32px;height:32px">${keyMark()}</span>${wordmark(18)}</div><span class="label">Gift card</span></div>
+    ${exp?`<div class="car-line">${carSVG(carById(exp.car))}</div>`:`<div class="duck-art">${DUCK}</div>`}
+    ${exp?"":`<div class="mid"><span class="emv" aria-hidden="true"></span><svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.5 8.5a5 5 0 0 1 0 7M12 6a8.5 8.5 0 0 1 0 12M15.5 3.5a12 12 0 0 1 0 17"/></svg></div>`}
+    <div><div class="to">${exp?esc(exp.title):"Подарунковий сертифікат"}</div><div class="amt num">${amount.toLocaleString("uk-UA")}<small> ₴</small></div></div>
+    <div style="display:flex;justify-content:space-between;align-items:flex-end;gap:8px"><span class="to">Для: <b style="color:var(--text)">${esc(to||"…")}</b></span><span class="code">${code}</span></div>
+  </div>`;
+}
+
+/* ===================== PROFILE ===================== */
+function renderProfile(){
+  const lvl=currentLevel(USER.rentals);
+  const past=[["octavia","12–15 вересня","Завершено"],["rav4","2–9 серпня","Завершено"],["bmw5","20 червня","Завершено"]];
+  $("#s-profile").innerHTML=`
+  <div class="topbar"><h1 class="h-screen">Профіль</h1><button class="iconbtn" aria-label="Сповіщення">${ic("bell")}</button></div>
+  <div class="me"><span class="avatar">${USER.first[0]}${USER.last[0]}</span><div><h1>${USER.first} ${USER.last}</h1><p>Рівень ${lvl.name} · ${USER.rentals} оренд · стаж водіння 9 років</p></div></div>
+
+  <div class="section-h pad"><h2>Мої поїздки</h2></div>
+  <div class="pad stack" style="gap:8px">
+    ${S.trips.map(t=>`<div class="trip active">${carSVG(carById(t.car))}<div class="t"><span class="label" style="color:var(--blue-hi)">Заброньовано · ${t.code}</span><b>${esc(carById(t.car).make+" "+carById(t.car).model)}</b><span>${t.dates} · ${t.time}</span></div></div>`).join("")}
+    ${past.map(([id,d,s])=>`<div class="trip">${carSVG(carById(id))}<div class="t"><span class="label">${s}</span><b>${esc(carById(id).make+" "+carById(id).model)}</b><span>${d}</span></div></div>`).join("")}
+  </div>
+
+  <div class="section-h pad"><h2>Документи</h2></div>
+  <div class="pad"><div class="rows">
+    <div class="rowi">${ic("doc")}<div class="t"><b>Посвідчення водія</b><span>Категорія B · до 2031</span></div><span class="ok">${ic("check")}Перевірено</span></div>
+    <div class="rowi">${ic("user")}<div class="t"><b>Паспорт</b><span>Отримано через Дію</span></div><span class="ok">${ic("check")}Перевірено</span></div>
+    <div class="rowi">${ic("card")}<div class="t"><b>Картка для застави</b><span>•••• 4417</span></div></div>
+  </div></div>
+
+  <div class="section-h pad"><h2>Для бізнесу</h2></div>
+  <div class="pad"><button class="owner-card" data-act="nav" data-to="owner">${ic("chart")}<span style="flex:1"><b>Панель власника</b><span>Завантаженість парку, дохід і статуси авто в одному екрані</span></span>${ic("right")}</button></div>
+  <div class="pad" style="margin-top:12px"><details class="rows credits"><summary>Фото авто ${ic("right")}</summary>
+    <p style="margin:0 14px 8px">Wikimedia Commons, фон вирізано. У робочій версії тут будуть фото вашого автопарку.</p>
+    <ul>${CARS.map(c=>`<li>${esc(c.make+" "+c.model)}: ${CREDITS[c.id][0]}, ${CREDITS[c.id][1]}</li>`).join("")}</ul></details></div>`;
+}
+
+/* ===================== OWNER ===================== */
+function renderOwner(){
+  const rev=[52,61,58,74,96,88,57]; // тис. ₴
+  const days=[...Array(7)].map((_,i)=>addDays(today0,i-6));
+  const max=100,W=320,H=150,pl=30,pb=22,bw=24,step=(W-pl-10)/7;
+  const y=v=>10+(H-pb-10)*(1-v/max);
+  let svg=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Дохід за 7 днів, тисяч гривень">`;
+  [0,25,50,75,100].forEach(v=>{svg+=`<line x1="${pl}" x2="${W}" y1="${y(v)}" y2="${y(v)}" stroke="#212937" stroke-dasharray="${v?"2 4":"0"}"/><text x="${pl-6}" y="${y(v)+3.5}" fill="#646D80" font-size="9" text-anchor="end" font-family="JetBrains Mono, monospace">${v}</text>`});
+  rev.forEach((v,i)=>{const x=pl+step*i+(step-bw)/2,top=y(v),best=v===Math.max(...rev);
+    svg+=`<rect x="${x}" y="${top}" width="${bw}" height="${y(0)-top}" rx="5" fill="${best?"#2E5BFF":"#2A3550"}"/>`;
+    svg+=`<text x="${x+bw/2}" y="${H-6}" fill="#949DAF" font-size="9" text-anchor="middle" font-family="JetBrains Mono, monospace">${WD[days[i].getDay()]}</text>`;
+    if(best)svg+=`<text x="${x+bw/2}" y="${top-5}" fill="#ECEFF5" font-size="10" font-weight="700" text-anchor="middle" font-family="JetBrains Mono, monospace">${v}k</text>`});
+  svg+="</svg>";
+  const fleet=[["s500","rent","В оренді","до 12:00 завтра"],["cayenne","rent","В оренді","до неділі"],["rio","free","Вільне","Печерськ"],["camry","wash","Мийка","готове о 14:30"],["sportage","service","ТО","заміна мастила"],["tesla3","free","Вільне","заряд 92%"]];
+  $("#s-owner").innerHTML=`
+  <div class="topbar"><button class="iconbtn" data-act="back" aria-label="Назад">${ic("left")}</button><h1 class="h-screen" style="font-size:18px">Панель власника</h1><span class="badge">демо</span></div>
+  <div class="gauge" style="width:240px">${gaugeSVG(78,"og")}<div class="mid" style="top:40%"><b class="num">78%</b><span>завантаженість парку</span></div></div>
+  <p style="text-align:center;margin:0 20px;color:var(--muted);font-size:13px">17 з 22 авто зараз в оренді або заброньовані</p>
+  <div class="pad" style="margin-top:20px"><div class="kpis">
+    <div class="kpi"><span class="label">Дохід · 7 днів</span><b class="num">486 тис ₴</b><span class="delta">↑ 12% до мин. тижня</span></div>
+    <div class="kpi"><span class="label">Бронювань</span><b class="num">37</b><span class="delta">↑ 8 через застосунок</span></div>
+    <div class="kpi"><span class="label">Повторні клієнти</span><b class="num">41%</b><span class="delta">↑ завдяки токенам</span></div>
+    <div class="kpi"><span class="label">Сертифікати</span><b class="num">63 тис ₴</b><span class="delta">9 шт · оплачено наперед</span></div>
+  </div></div>
+  <div class="section-h pad"><h2>Дохід по днях</h2><span class="label">тис. ₴</span></div>
+  <div class="pad"><div class="chart">${svg}</div></div>
+  <div class="section-h pad"><h2>Автопарк зараз</h2><span class="label">сьогодні: 4 видачі · 3 повернення</span></div>
+  <div class="pad"><div class="fleet">${fleet.map(([id,st,l,m])=>{const c=carById(id);return `<div class="fl">${carSVG(c)}<div class="t"><b>${esc(c.make+" "+c.model)}</b><span>${m}</span></div><span class="st ${st}">${l}</span></div>`}).join("")}</div></div>
+  <div style="height:30px"></div>`;
+}
+
+/* ===================== SHEETS ===================== */
+function openSheet(html){
+  const el=$("#sheet");el.innerHTML=`<div class="scrim" data-act="scrim"><div class="bsheet" role="dialog" aria-modal="true" aria-labelledby="sh-t"><div class="grab"></div>${html}</div></div>`;
+  setTimeout(()=>{const b=el.querySelector("[data-act=close-sheet]");b&&b.focus()},50);
+}
+function closeSheet(){$("#sheet").innerHTML=""}
+
+/* ===================== EVENTS ===================== */
+document.addEventListener("click",e=>{
+  const t=e.target.closest("[data-act]");if(!t||t.disabled)return;
+  const a=t.dataset.act;
+  switch(a){
+    case "tab": go(t.dataset.to,{reset:true});break;
+    case "nav": go(t.dataset.to);break;
+    case "jump": {
+      closeSheet();
+      if(t.dataset.to==="booking"){S.carId=S.carId||"rio";S.start=null;S.end=null;S.calMonth=null;S.calMsg="";S.hist=["home","detail"];S.screen="detail";go("booking",{push:false});}
+      else if(t.dataset.to==="owner"){S.hist=["profile"];S.screen="profile";go("owner",{push:false})}
+      else go(t.dataset.to,{reset:true});
+      break;}
+    case "back": back();break;
+    case "cls": S.cls=t.dataset.cls;S.focusId=null;
+      if(S.screen==="home"){renderHome();setupCarousel()}else{renderCatalog()}break;
+    case "pick": {const tr=$("#carousel");const r=tr.getBoundingClientRect(),b=t.getBoundingClientRect();
+      if(Math.abs((b.left+b.width/2)-(r.left+r.width/2))<20){openCar(t.dataset.id)}else scrollCarTo(t);break;}
+    case "cprev": case "cnext": {const items=[...$("#carousel").children];const i=items.findIndex(x=>x.dataset.id===S.focusId);const n=items[Math.max(0,Math.min(items.length-1,i+(a==="cnext"?1:-1)))];scrollCarTo(n);break;}
+    case "banner": {const bn=$("#banners");bn.scrollTo({left:bn.clientWidth*+t.dataset.i+12*+t.dataset.i,behavior:"smooth"});break;}
+    case "open-car": openCar(t.dataset.id);break;
+    case "fav": {const id=t.dataset.id;S.favs.has(id)?S.favs.delete(id):S.favs.add(id);store.set("favs",[...S.favs]);t.setAttribute("aria-pressed",String(S.favs.has(id)));break;}
+    case "opt": {const id=t.dataset.id;S.opts.has(id)?S.opts.delete(id):S.opts.add(id);t.setAttribute("aria-pressed",String(S.opts.has(id)));if(S.screen==="booking")refreshBooking();break;}
+    case "to-booking": S.start=null;S.end=null;S.calMonth=null;S.calMsg="";go("booking");break;
+    case "strip": {const d=new Date(+t.dataset.t);const len=S.end?Math.max(1,diffDays(S.start,S.end)):3;setRange(d,addDays(d,len));S.calMonth=new Date(d.getFullYear(),d.getMonth(),1);refreshBooking();break;}
+    case "day": {const d=new Date(+t.dataset.t);
+      if(!S.start||S.end||d<=S.start){S.start=d;S.end=null;S.calMsg=""}
+      else setRange(S.start,d);
+      refreshBooking();break;}
+    case "cal-prev": S.calMonth=new Date(S.calMonth.getFullYear(),S.calMonth.getMonth()-1,1);refreshBooking();break;
+    case "cal-next": S.calMonth=new Date(S.calMonth.getFullYear(),S.calMonth.getMonth()+1,1);refreshBooking();break;
+    case "time": S.time=t.dataset.v;t.parentElement.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b===t)));break;
+    case "place": S.place=t.dataset.v;t.parentElement.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b===t)));refreshBooking();break;
+    case "tokens": S.useTokens=!S.useTokens;refreshBooking();break;
+    case "confirm": confirmBooking();break;
+    case "close-sheet": closeSheet();break;
+    case "scrim": if(e.target===t)closeSheet();break;
+    case "gift-amt": S.gift.amount=+t.dataset.v;S.gift.exp=null;renderGifts();break;
+    case "gift-exp": S.gift.exp=S.gift.exp===t.dataset.v?null:t.dataset.v;renderGifts();break;
+    case "occ": S.gift.occasion=t.dataset.v;t.parentElement.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b===t)));break;
+    case "copy": {const txt=t.dataset.v;navigator.clipboard?.writeText(txt).then(()=>{t.textContent="Скопійовано"}).catch(()=>{const r=document.createRange();r.selectNodeContents(t.previousElementSibling);const s=getSelection();s.removeAllRanges();s.addRange(r)});break;}
+    case "go-profile": closeSheet();go("profile",{reset:true});break;
+    case "contact": S.form.contact=t.dataset.v;t.parentElement.querySelectorAll("button").forEach(b=>b.setAttribute("aria-pressed",String(b===t)));break;
+    case "gift-ch": S.sent.channel=t.dataset.v;giftSheet();break;
+    case "gift-send": {const d=S.sent.dest.trim(),ch=S.sent.channel;let err="";
+      if(ch==="Email"&&!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d))err="Вкажіть email, наприклад name@gmail.com";
+      else if(ch==="Telegram"&&!(d.startsWith("@")&&d.length>2)&&d.replace(/\D/g,"").length<9)err="Вкажіть @нік у Telegram або номер телефону";
+      else if((ch==="Viber"||ch==="SMS")&&d.replace(/\D/g,"").length<9)err="Вкажіть номер телефону отримувача";
+      if(err){giftSheet(err);return}
+      S.sent.done=true;giftSheet();break;}
+    case "gift-preview": giftPreview();break;
+    case "gift-activate": t.outerHTML=`<div class="sent">${ic("check")}<span>Сертифікат додано в гаманець отримувача</span></div>`;break;
+  }
+});
+function setRange(a,b){
+  const c=carById(S.carId);
+  if(diffDays(a,b)>30){S.start=a;S.end=null;S.calMsg="Максимальний термін оренди 30 діб. Для довшої оренди напишіть нам";return}
+  if(!rangeFree(c,a,b)){S.start=a;S.end=null;S.calMsg="У цьому періоді авто вже заброньоване. Оберіть іншу дату повернення або інше авто";return}
+  S.start=a;S.end=b;S.calMsg="";
+}
+function openCar(id){S.carId=id;S.opts=new Set();go("detail")}
+const fmtPhone=d=>{d=d.replace(/\D/g,"").slice(0,9);return [d.slice(0,2),d.slice(2,5),d.slice(5,7),d.slice(7,9)].filter(Boolean).join(" ")};
+function confirmBooking(){
+  if(!S.end){S.calMsg="Оберіть дату повернення в календарі";refreshBooking();return}
+  bookingForm();
+}
+function bookingForm(errs={}){
+  const k=calc(),f=S.form,pl=S.place;
+  const timeLbl=pl==="door"?"Коли подати авто":pl==="kbp"?"Час прильоту":"Коли заберете авто";
+  openSheet(`<div class="steps" aria-hidden="true"><i class="on"></i><i class="on"></i><i></i></div>
+  <h2 id="sh-t">Ваші дані</h2><p class="lead">Залишилось кілька питань, і авто ваше</p>
+  <div class="bsum">${carSVG(k.c)}<div><b>${esc(k.c.make+" "+k.c.model)}</b><span>${fmtDate(S.start)} → ${fmtDate(S.end)} · ${k.days} ${daysWord(k.days)} · ${k.place.name}</span></div></div>
+  <form class="stack" style="gap:14px" id="bookForm" novalidate>
+    <div class="field ${errs.name?"bad":""}"><label class="label" for="bf-name">Ім'я та прізвище</label><input id="bf-name" value="${esc(f.name)}" autocomplete="name">${errs.name?`<span class="err" role="alert">${errs.name}</span>`:""}</div>
+    <div class="field ${errs.phone?"bad":""}"><label class="label" for="bf-phone">Телефон</label><div class="phone"><span>+380</span><input id="bf-phone" type="tel" inputmode="numeric" value="${fmtPhone(f.phone)}" placeholder="67 123 45 67" autocomplete="tel-national"></div>${errs.phone?`<span class="err" role="alert">${errs.phone}</span>`:""}</div>
+    ${pl==="door"?`<div class="field ${errs.addr?"bad":""}"><label class="label" for="bf-addr">Адреса подачі</label><input id="bf-addr" value="${esc(f.addr)}" placeholder="Вулиця, будинок, під'їзд" autocomplete="street-address">${errs.addr?`<span class="err" role="alert">${errs.addr}</span>`:""}</div>`:""}
+    ${pl==="kbp"?`<div class="field"><label class="label" for="bf-flight">Номер рейсу <span style="text-transform:none;letter-spacing:0">(необов'язково)</span></label><input id="bf-flight" value="${esc(f.flight)}" placeholder="PS 102"></div>`:""}
+    <div class="field"><span class="label">${timeLbl} · ${fmtDate(S.start)}</span><div class="seg" role="group" aria-label="${timeLbl}">${TIMES.map(t=>`<button type="button" data-act="time" data-v="${t}" aria-pressed="${S.time===t}" class="num">${t}</button>`).join("")}</div></div>
+    <div class="field"><span class="label">Як з вами зв'язатися</span><div class="seg" role="group" aria-label="Зв'язок">${["Дзвінок","Telegram","Viber"].map(c=>`<button type="button" data-act="contact" data-v="${c}" aria-pressed="${f.contact===c}">${c}</button>`).join("")}</div></div>
+    <div class="sum-row total"><span>До сплати</span><span class="num">${money(k.total)}</span></div>
+    <button class="btn btn-blue" type="submit" style="height:56px;font-size:16px">${ic("key")} Підтвердити бронювання</button>
+    <p class="note" style="margin:0;text-align:center">Натискаючи, ви погоджуєтесь з умовами оренди. Демо: оплата не проводиться.</p>
+  </form>`);
+  setTimeout(()=>{const el=errs.name?$("#bf-name"):errs.phone?$("#bf-phone"):errs.addr?$("#bf-addr"):null;el&&el.focus()},60);
+}
+function submitBooking(){
+  const f=S.form,errs={};
+  if(f.name.trim().length<2)errs.name="Вкажіть ім'я, щоб менеджер знав, до кого звертатися";
+  if(f.phone.replace(/\D/g,"").length!==9)errs.phone="Номер має містити 9 цифр після +380";
+  if(S.place==="door"&&f.addr.trim().length<5)errs.addr="Вкажіть вулицю й номер будинку, куди подати авто";
+  if(Object.keys(errs).length){bookingForm(errs);return}
+  const k=calc(),code="PZ-"+String(Math.floor(1000+Math.random()*9000));
+  S.tokens-=k.tok;
+  const where=S.place==="door"?f.addr:k.place.name;
+  S.trips.unshift({car:k.c.id,code,dates:`${fmtDate(S.start)} → ${fmtDate(S.end)}`,time:S.time});
+  openSheet(`<div class="steps" aria-hidden="true"><i class="on"></i><i class="on"></i><i class="on"></i></div><div class="success-ic">${ic("check")}</div><h2 id="sh-t">Бронь підтверджено</h2>
+    <p class="lead">${esc(k.c.make+" "+k.c.model)} · ${fmtDate(S.start)} → ${fmtDate(S.end)}<br>${S.place==="door"?"Подача":"Видача"} о ${S.time} · ${esc(where)}</p>
+    <div class="codebox"><div><span class="label">Код бронювання</span><br><b>${code}</b></div><button class="btn btn-ghost" data-act="copy" data-v="${code}">Копіювати</button></div>
+    <div class="earn">${ic("token")}<span>+${k.earn} токенів нарахуємо після поїздки</span></div>
+    <div class="sum-row total" style="margin-top:14px"><span>Сплачено</span><span class="num">${money(k.total)}</span></div>
+    <p class="note">${f.contact==="Дзвінок"?"Менеджер зателефонує":"Менеджер напише в "+f.contact} на +380 ${fmtPhone(f.phone)} за годину до ${S.place==="door"?"подачі":"видачі"}. Демо: реальна оплата не проводиться.</p>
+    <div style="display:grid;gap:8px;margin-top:16px"><button class="btn btn-blue" style="height:52px" data-act="go-profile">Мої поїздки</button><button class="btn btn-ghost" style="height:52px" data-act="close-sheet">Закрити</button></div>`);
+}
+document.addEventListener("input",e=>{
+  if(e.target.id==="q"){S.q=e.target.value;$("#grid").innerHTML=gridHTML(filtered())}
+  if(e.target.id==="g-to"){S.gift.to=e.target.value;const b=$("#cert .to b");if(b)b.textContent=S.gift.to||"…";$("#g-err").hidden=true}
+  if(e.target.id==="g-msg"){S.gift.msg=e.target.value}
+  if(e.target.id==="g-dest"){S.sent.dest=e.target.value}
+  if(e.target.id==="bf-name"){S.form.name=e.target.value}
+  if(e.target.id==="bf-addr"){S.form.addr=e.target.value}
+  if(e.target.id==="bf-flight"){S.form.flight=e.target.value}
+  if(e.target.id==="bf-phone"){let d=e.target.value.replace(/\D/g,"");if(d.startsWith("380"))d=d.slice(3);if(d.startsWith("0"))d=d.slice(1);S.form.phone=d.slice(0,9);e.target.value=fmtPhone(S.form.phone)}
+});
+document.addEventListener("submit",e=>{
+  if(e.target.id==="bookForm"){e.preventDefault();submitBooking();return}
+  if(e.target.id!=="giftForm")return;e.preventDefault();
+  if(!S.gift.to.trim()){$("#g-err").hidden=false;$("#g-to").focus();return}
+  const exp=S.gift.exp?EXPERIENCES.find(x=>x.id===S.gift.exp):null,amt=exp?exp.price:S.gift.amount;
+  const code="PZ-"+Math.random().toString(36).slice(2,6).toUpperCase()+"-2026";
+  S.sent={exp,amt,code,channel:"Telegram",dest:"",done:false};
+  giftSheet();
+});
+function giftSheet(err=""){
+  const t=S.sent,g=S.gift;
+  const ph={Telegram:"@нік або +380…",Viber:"+380 67 123 45 67",SMS:"+380 67 123 45 67","Email":"name@gmail.com"}[t.channel];
+  openSheet(`<h2 id="sh-t">Сертифікат оформлено</h2><p class="lead">Для: ${esc(g.to)}. Залишилось надіслати листівку</p>
+    ${certHTML({exp:t.exp,amount:t.amt,to:g.to,code:t.code,cls:"mini"})}
+    ${t.done?`<div class="sent">${ic("check")}<span>Листівку надіслано в ${t.channel}: ${esc(t.dest)}</span></div>
+      <div style="display:grid;gap:8px;margin-top:14px"><button class="btn btn-blue" style="height:52px" data-act="gift-preview">Як її побачить отримувач</button><button class="btn btn-ghost" style="height:52px" data-act="close-sheet">Готово</button></div>
+      <p class="note" style="text-align:center">Демо: повідомлення насправді не надсилається.</p>`
+    :`<div class="section-h" style="margin-top:4px"><h2>Надіслати онлайн-листівку</h2></div>
+      <div class="channels" role="group" aria-label="Канал">${[["Telegram","arrow"],["Viber","msg"],["SMS","msg"],["Email","doc"]].map(([c,i])=>`<button data-act="gift-ch" data-v="${c}" aria-pressed="${t.channel===c}">${ic(i)}${c}</button>`).join("")}</div>
+      <div class="field ${err?"bad":""}" style="margin-top:12px"><label class="label" for="g-dest">Кому надіслати</label><input id="g-dest" value="${esc(t.dest)}" placeholder="${ph}" autocomplete="off">${err?`<span class="err" role="alert">${err}</span>`:""}</div>
+      <div style="display:grid;gap:8px;margin-top:14px"><button class="btn btn-blue" style="height:52px" data-act="gift-send">${ic("gift")} Надіслати листівку</button>
+      <button class="btn btn-ghost" style="height:52px" data-act="copy" data-v="https://pizno.app/g/${t.code}">Скопіювати посилання</button></div>
+      <p class="note" style="text-align:center">Код сертифіката <b class="mono" style="color:var(--text)">${t.code}</b> діє 12 місяців</p>`}`);
+}
+function giftPreview(){
+  const t=S.sent,g=S.gift;
+  openSheet(`<div class="greet-card"><span class="label">${esc(g.occasion)}</span><h2 id="sh-t">${esc(g.to)}, вам подарунок!</h2><p class="lead" style="margin:0">від ${USER.first} через PIZNO</p></div>
+    ${certHTML({exp:t.exp,amount:t.amt,to:g.to,code:t.code,cls:"mini flip"})}
+    ${g.msg?`<div class="greet-card"><blockquote>${esc(g.msg)}</blockquote></div>`:""}
+    <div style="display:grid;gap:8px"><button class="btn btn-blue" style="height:52px" data-act="gift-activate">${ic("key")} Активувати в PIZNO</button><button class="btn btn-ghost" style="height:52px" data-act="close-sheet">Закрити</button></div>
+    <p class="note" style="text-align:center">Так листівку побачить отримувач за посиланням. Демо.</p>`);
+}
+document.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("#sheet").innerHTML)closeSheet()});
+
+/* ===================== BOOT ===================== */
+document.querySelectorAll("[data-brand]").forEach(e=>e.outerHTML=wordmark(30));
+document.querySelectorAll("[data-brand-mark]").forEach(e=>e.innerHTML=keyMark());
+go("home",{reset:true});
+(()=>{const sp=$("#splash");sp.querySelector(".splash-duck").innerHTML=DUCK;sp.querySelector(".splash-word").innerHTML=wordmark(44);
+  const hide=()=>sp.classList.add("out");
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches)hide();else setTimeout(hide,1400);
+  sp.addEventListener("click",hide)})();
+</script>
+
+</body>
+</html>
